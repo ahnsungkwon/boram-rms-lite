@@ -103,7 +103,12 @@ def publish() -> None:
     if any(item['tag_name'] == tag for item in existing):
         raise SystemExit('This release already exists. Refusing overwrite.')
     run(['gh', 'release', 'create', tag, str(ZIP), str(META), '--repo', REPO, '--target', commit, '--draft', '--title', f'Boram RMS Lite {VERSION}', '--notes-file', str(ROOT / 'CHANGELOG.md')])
-    data = json.loads(run(['gh', 'api', f'repos/{REPO}/releases/tags/{tag}'], capture=True))
+    # The tag endpoint returns published releases only; inspect the draft via list.
+    drafts = json.loads(run(['gh', 'api', f'repos/{REPO}/releases?per_page=100'], capture=True))
+    matching = [item for item in drafts if item['tag_name'] == tag and item['draft']]
+    if len(matching) != 1 or matching[0]['target_commitish'] != commit:
+        raise SystemExit('Could not identify the exact newly-created draft. No publication performed.')
+    data = matching[0]
     assets = {item['name']: item for item in data['assets']}
     for path in [ZIP, META]:
         item = assets[path.name]
