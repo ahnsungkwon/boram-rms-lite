@@ -17,7 +17,6 @@ public sealed class ImageItem
     public string Status { get; set; } = "";
     public string Details { get; set; } = "";
     public bool Card { get; set; }
-    public string PhoneIssue { get; set; } = "";
     public long Length { get; set; }
     public long ModifiedTicks { get; set; }
     public string Account => Card ? "카드" : "CMS";

@@ -11,6 +11,7 @@ public sealed class PanelWindow : Window
     public PanelWindow(string title, UIElement content, double width)
     {
         Foreground = (Brush)FindResource("TextBrush"); FontFamily = new FontFamily("Pretendard, Malgun Gothic, Segoe UI"); FontSize = 12;
+        Icon = AppBrand.Icon;
         Title = "보람 RMS Lite · " + title; Width = width; Height = 760;
         MinWidth = Math.Min(width, 320); MinHeight = 160;
         WindowStyle = WindowStyle.SingleBorderWindow; Background = (Brush)FindResource("PanelBg");

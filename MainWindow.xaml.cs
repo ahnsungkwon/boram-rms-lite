@@ -53,7 +53,7 @@ public partial class MainWindow : Window
         RightColumn.Width = new GridLength(Math.Clamp(_previousSettings.RightWidth, 235, 500));
         _thumbnails = _previousSettings.Thumbnails;
         WorkTabs.ItemsSource = Tabs;
-        StatusFilter.ItemsSource = new[] { "전체", "CMS", "카드", "보완", "주말미등록", "취소", "입력전 변경", "입력후 변경", "오기입", "오등록", "추가", "전화번호 확인 필요", "등록 여부 확인 안 됨" };
+        StatusFilter.ItemsSource = new[] { "전체", "CMS", "카드", "보완", "주말미등록", "취소", "입력전 변경", "입력후 변경", "오기입", "오등록", "추가", "등록 여부 확인 안 됨" };
         StatusFilter.SelectedIndex = 0; SortMode.SelectedIndex = 0;
         _statusBoxes = new() { [WeekendCheck] = "주말미등록", [AdditionalCheck] = "추가", [PreCancelCheck] = "입력전 취소", [PostCancelCheck] = "입력후 취소", [MistakeCheck] = "오기입", [WrongCheck] = "오등록", [PreChangeCheck] = "입력전 변경", [PostChangeCheck] = "입력후 변경" };
         foreach (var box in _statusBoxes.Keys.Concat(RepairReasons.Children.OfType<CheckBox>()).Append(CardCheck).Append(MinorCheck)) box.Click += (_, _) => { if (!_filling) _statusDirty = true; };
@@ -174,8 +174,6 @@ public partial class MainWindow : Window
             Log($"{data.Count}개 이미지 · " + (tab.Lease.Writable ? "작업 준비" : "읽기 전용"));
             _watcher = new FileSystemWatcher(tab.Context.Root) { IncludeSubdirectories = true, NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite, EnableRaisingEvents = true };
             _watcher.Changed += WatchChanged; _watcher.Created += WatchChanged; _watcher.Deleted += WatchChanged; _watcher.Renamed += WatchChanged;
-            var phone = await Task.Run(() => PhoneResults.Apply(tab.Context, data));
-            if (version == _loadGeneration && !_closing) { PhoneSummary.Text = phone; ImageList.Items.Refresh(); }
             if (_thumbnails) await LoadThumbnailsAsync();
         }
         catch (OperationCanceledException) { }
@@ -193,7 +191,7 @@ public partial class MainWindow : Window
         preferred ??= (ImageList.SelectedItem as ImageItem)?.FullPath;
         var keyword = SearchText.Text.Trim(); var status = StatusFilter.SelectedItem as string ?? "전체";
         IEnumerable<ImageItem> query = AllItems.Where(i => keyword.Length == 0 || i.FileName.Contains(keyword, StringComparison.CurrentCultureIgnoreCase) || i.Details.Contains(keyword, StringComparison.CurrentCultureIgnoreCase));
-        query = query.Where(i => status switch { "전체" => true, "CMS" => !i.Card, "카드" => i.Card, "전화번호 확인 필요" => i.PhoneIssue.Length > 0, "등록 여부 확인 안 됨" => true, _ => i.Status.Contains(status) });
+        query = query.Where(i => status switch { "전체" => true, "CMS" => !i.Card, "카드" => i.Card, "등록 여부 확인 안 됨" => true, _ => i.Status.Contains(status) });
         query = SortMode.SelectedIndex switch { 1 => query.OrderBy(i => int.TryParse(i.Quota, out var n) ? n : 1000).ThenBy(i => i.Name, StringComparer.CurrentCultureIgnoreCase), 2 => query.OrderBy(i => i.FileName, StringComparer.CurrentCultureIgnoreCase), _ => query.OrderBy(i => _active?.Order.GetValueOrDefault(i.FullPath) ?? i.Index) };
         var visible = query.ToList(); _selecting = true;
         ImageList.ItemsSource = visible; ImageList.SelectedItem = visible.FirstOrDefault(i => preferred != null && SafePaths.Same(i.FullPath, preferred)) ?? visible.FirstOrDefault(); _selecting = false;

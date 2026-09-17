@@ -53,11 +53,11 @@ def build() -> None:
         raise SystemExit('Test output escaped the expected directory.')
     summary = (proof / 'SUMMARY.txt').read_text(encoding='utf-8')
     results = json.loads((proof / 'test-results.json').read_text(encoding='utf-8'))
-    if len(results) < 58 or not all(item.get('Passed') is True for item in results) or not summary.startswith(f'PASS {len(results)}\nFAIL 0'):
+    if len(results) < 63 or not all(item.get('Passed') is True for item in results) or not summary.startswith(f'PASS {len(results)}\nFAIL 0'):
         raise SystemExit('Test failure: package will not be created.')
     for name in ['README.md', 'README_KO.md', 'UPDATE_GUIDE.md', 'CHANGELOG.md']:
         shutil.copy2(ROOT / name, BUNDLE / name)
-    for name, target in [('SUMMARY.txt', 'TEST_SUMMARY.txt'), ('main-preview.png', 'MAIN_PREVIEW.png'), ('update-preview.png', 'UPDATE_PREVIEW.png')]:
+    for name, target in [('SUMMARY.txt', 'TEST_SUMMARY.txt'), ('main-preview.png', 'MAIN_PREVIEW.png'), ('update-preview.png', 'UPDATE_PREVIEW.png'), ('rename-input-preview.png', 'RENAME_INPUT_PREVIEW.png'), ('rms-icon-preview.png', 'RMS_ICON_PREVIEW.png')]:
         shutil.copy2(proof / name, BUNDLE / target)
     entries = sorted(p for p in BUNDLE.rglob('*') if p.is_file())
     forbidden = {'.ttf', '.otf', '.woff', '.woff2', '.pfx', '.pem', '.key', '.dpapi'}

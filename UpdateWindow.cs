@@ -19,6 +19,7 @@ public sealed class UpdateWindow : Window
     public UpdatePlan? Prepared { get; private set; }
     public UpdateWindow(bool testMode = false)
     {
+        Icon = AppBrand.Icon;
         Title = "보람 RMS Lite · 업데이트"; Width = 650; Height = 650; MinWidth = 560; MinHeight = 540;
         WindowStartupLocation = WindowStartupLocation.CenterOwner; Background = (Brush)FindResource("AppBg"); Foreground = (Brush)FindResource("TextBrush"); FontFamily = new FontFamily("Malgun Gothic"); FontSize = 12;
         var grid = new Grid { Margin = new Thickness(22), Background = Background };

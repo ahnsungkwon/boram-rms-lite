@@ -187,11 +187,10 @@ public static class SelfTest
                 FileChanges.Undo(FileChanges.LatestCompleted(LocalData.JournalRoot(target))!);
                 Assert(SameOriginals(before,Snapshot(source.Root)) && SameOriginals(targetBefore,Snapshot(target.EventRoot!)),"대체 이동 원본 복구");
             });
-            Check("20 로컬 전화번호 자료 없음/손상 처리", () =>
+            Check("20 전화번호 매칭 런타임·데이터 필드 제거", () =>
             {
-                var c=Fixture("phone"); AddImage(c.Root,"1가상가.png"); var items=LocalData.Load(c);
-                Assert(PhoneResults.Apply(c,items).Contains("자료 없음") && items.Single().PhoneIssue=="","자료 없음 오표시");
-                File.WriteAllText(Path.Combine(c.Root,"전화번호_조회결과.xlsx"),"broken"); Assert(PhoneResults.Apply(c,items).Contains("보류"),"손상된 결과 파일 처리");
+                Assert(typeof(MainWindow).Assembly.GetType("BoramRms.Lite.PhoneResults")==null,"매칭 실행 코드 잔존");
+                Assert(typeof(ImageItem).GetProperty("PhoneIssue")==null,"매칭 상태 필드 잔존");
             });
             Check("21 폴더 동시 쓰기 잠금", () =>
             {
@@ -317,6 +316,7 @@ public static class SelfTest
             });
             UpdateTests.Run(run, Check);
             await UiRevisionTests.RunAsync(run, Check, CheckAsync);
+            await BrandInputTests.RunAsync(run, Check, CheckAsync);
         }
         catch (Exception ex) { results.Add(new("테스트 실행기 오류",false,ex.ToString())); }
         finally { SettingsStore.DirectoryPath=oldSettings; Save(); }
