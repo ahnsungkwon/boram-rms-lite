@@ -17,7 +17,7 @@ public static class InPlaceCompression
     public static CompressionResult Run(FolderContext context, IReadOnlyList<ImageItem> items, IProgress<CompressionEntry>? progress, CancellationToken token)
     {
         var result = new CompressionResult();
-        FileChanges.CheckPending(LocalData.JournalRoot(context));
+        // Direct image compression is independent from legacy RMS state journals.
         foreach (var item in items)
         {
             if (token.IsCancellationRequested) { result.Cancelled = true; break; }

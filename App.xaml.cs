@@ -21,7 +21,7 @@ public partial class App : Application
         if (e.Args.Length >= 2 && e.Args[0] == "--self-test")
         {
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
-            var exit = await SelfTest.RunAsync(Path.GetFullPath(e.Args[1]));
+            var exit = await LiteWorkflowTests.RunAsync(Path.GetFullPath(e.Args[1]));
             Shutdown(exit); return;
         }
         DispatcherUnhandledException += (_, a) =>

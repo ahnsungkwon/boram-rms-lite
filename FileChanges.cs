@@ -5,7 +5,7 @@ namespace BoramRms.Lite;
 
 // A durable per-operation journal. Not a database transaction: a power failure is
 // detected on the next write and requires an explicit, verified recovery.
-public sealed class FileChanges
+public sealed partial class FileChanges
 {
     private readonly List<(string Source, string Target)> _moves = new();
     private readonly Dictionary<string, byte[]> _writes = new(StringComparer.OrdinalIgnoreCase);
@@ -37,7 +37,12 @@ public sealed class FileChanges
         if (_moves.Any(m => SafePaths.Same(m.Target, target))) throw new IOException("작업 내 대상 경로가 중복됩니다.");
         _moves.Add((source, target));
     }
-    public void Write(string path, byte[] bytes) { CheckPath(path); Expect(path); _writes[path] = bytes; }
+    public void Write(string path, byte[] bytes)
+    {
+        CheckPath(path); Expect(path);
+        if (_expected[path] == Hash(bytes) && !_moves.Any(m => SafePaths.Same(m.Target, path))) _writes.Remove(path);
+        else _writes[path] = bytes;
+    }
     public void WriteJson<T>(string path, T data) => Write(path, Encoding.UTF8.GetBytes(JsonSerializer.Serialize(data, SettingsStore.Json)));
     private static string Hash(byte[] bytes) => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes));
     private static string? CurrentHash(string path) => File.Exists(path) ? SafePaths.Hash(path) : null;
@@ -124,7 +129,7 @@ public sealed class FileChanges
         foreach (var p in Directory.EnumerateFiles(journalRoot, "journal.json", SearchOption.AllDirectories))
         {
             var state = ReadJournal(p).State;
-            if (state is "applying" or "recovering") throw new IOException("중단된 작업 기록이 있습니다. 추가 수정을 중단하고 복구 기록을 확인하세요: " + p);
+            if (state is "applying" or "recovering") throw new IOException("중단된 작업 기록이 있습니다. 상단 '중단 기록 확인'에서 현재 파일 상태를 검증하세요. 기록은 임의로 삭제하지 마세요: " + p);
         }
     }
     private static ChangeJournal ReadJournal(string path)
@@ -149,6 +154,7 @@ public sealed class FileChanges
         j.State = "recovering"; SaveJournal(journalPath, j);
         foreach (var r in j.Files.Where(f => f.Backup != null))
         {
+            if (CurrentHash(r.Path) == r.BeforeHash) continue;
             AtomicWrite(r.Path, File.ReadAllBytes(Path.Combine(dir, r.Backup!)));
             File.SetLastWriteTimeUtc(r.Path, r.ModifiedUtc);
         }

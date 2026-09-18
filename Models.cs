@@ -17,6 +17,8 @@ public sealed class ImageItem
     public string Status { get; set; } = "";
     public string Details { get; set; } = "";
     public bool Card { get; set; }
+    public string? LiteRevision { get; set; }
+    public string StateNotice { get; set; } = "";
     public long Length { get; set; }
     public long ModifiedTicks { get; set; }
     public string Account => Card ? "카드" : "CMS";
@@ -82,9 +84,16 @@ public static class SafePaths
         }
         throw new IOException("중복 파일명이 너무 많습니다.");
     }
-    public static string ValidName(string text)
+    public static string NormalizeQuotaName(string text)
     {
         var value = text.Trim().ToUpperInvariant();
+        // Pasted name-then-quota input is supported as well as individual digit keystrokes.
+        var match = Regex.Match(value, @"^([^\d]+?)\s*([1-9][0-9]?)$");
+        return match.Success ? match.Groups[2].Value + match.Groups[1].Value.Trim() : value;
+    }
+    public static string ValidName(string text)
+    {
+        var value = NormalizeQuotaName(text);
         if (!Regex.IsMatch(value, @"^[1-9]\d?(?!\d)\s*[^\d\s].*$") || value.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || value.EndsWith('.') || value.Length > 170)
             throw new ArgumentException("1~99 구좌와 이름을 입력하세요. 예: 3홍길동. 파일명에 사용할 수 없는 문자는 제외해 주세요.");
         return Regex.Replace(value, @"^(\d{1,2})\s+", "$1");
@@ -102,12 +111,14 @@ public sealed class FolderLease : IDisposable
     }
     public void Dispose() { if (Writable) _mutex.ReleaseMutex(); _mutex.Dispose(); }
 }
+public sealed record ImageViewLayout(double Width, double Height, double LeftWidth, double RightWidth, bool LogExpanded, bool Detached);
 public sealed class ImageCamera
 {
     public double Scale { get; set; } = 1;
     public double X { get; set; }
     public double Y { get; set; }
     public double BaseWidth { get; set; }
+    public ImageViewLayout? Layout { get; set; }
 }
 public sealed class WorkTab : IDisposable
 {

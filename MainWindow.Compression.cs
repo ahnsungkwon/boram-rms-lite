@@ -28,6 +28,7 @@ public partial class MainWindow
                 if (entry.Error.Length > 0) Log("압축 제외 · " + Path.GetFileName(entry.Path) + " · " + entry.Error);
             });
             var result = await Task.Run(() => InPlaceCompression.Run(context, items, progress, _compressionCancellation.Token));
+            _lastLiteEdits.Remove(context.Root);
             await ReloadAsync(preferred); await LastPreviewTask;
             var changed = result.Entries.Count(i => i.Changed); var skipped = result.Entries.Count(i => i.Skipped); var failed = result.Entries.Count(i => i.Error.Length > 0);
             Log($"{(result.Cancelled ? "압축 중단" : "압축 완료")} · 변경 {changed} / 이미 작음 {skipped} / 실패 {failed} / 미처리 {items.Length - result.Entries.Count} · 기존 파일에 저장했습니다.");

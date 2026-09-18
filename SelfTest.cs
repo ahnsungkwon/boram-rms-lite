@@ -317,6 +317,7 @@ public static class SelfTest
             UpdateTests.Run(run, Check);
             await UiRevisionTests.RunAsync(run, Check, CheckAsync);
             await BrandInputTests.RunAsync(run, Check, CheckAsync);
+            await FunctionalFixTests.RunAsync(run, Check, CheckAsync);
         }
         catch (Exception ex) { results.Add(new("테스트 실행기 오류",false,ex.ToString())); }
         finally { SettingsStore.DirectoryPath=oldSettings; Save(); }

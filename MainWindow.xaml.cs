@@ -53,11 +53,11 @@ public partial class MainWindow : Window
         RightColumn.Width = new GridLength(Math.Clamp(_previousSettings.RightWidth, 235, 500));
         _thumbnails = _previousSettings.Thumbnails;
         WorkTabs.ItemsSource = Tabs;
-        StatusFilter.ItemsSource = new[] { "전체", "CMS", "카드", "보완", "주말미등록", "취소", "입력전 변경", "입력후 변경", "오기입", "오등록", "추가", "등록 여부 확인 안 됨" };
+        StatusFilter.ItemsSource = new[] { "전체", "CMS", "카드", "보완", "주말미등록", "취소", "입력전 변경", "입력후 변경", "오기입", "오등록", "추가" };
         StatusFilter.SelectedIndex = 0; SortMode.SelectedIndex = 0;
         _statusBoxes = new() { [WeekendCheck] = "주말미등록", [AdditionalCheck] = "추가", [PreCancelCheck] = "입력전 취소", [PostCancelCheck] = "입력후 취소", [MistakeCheck] = "오기입", [WrongCheck] = "오등록", [PreChangeCheck] = "입력전 변경", [PostChangeCheck] = "입력후 변경" };
-        foreach (var box in _statusBoxes.Keys.Concat(RepairReasons.Children.OfType<CheckBox>()).Append(CardCheck).Append(MinorCheck)) box.Click += (_, _) => { if (!_filling) _statusDirty = true; };
-        foreach (var text in new[] { RepairMemo, StatusMemo, PreQuota, PostQuota }) text.TextChanged += (_, _) => { if (!_filling) _statusDirty = true; };
+        foreach (var box in _statusBoxes.Keys.Concat(RepairReasons.Children.OfType<CheckBox>()).Append(CardCheck).Append(MinorCheck)) box.Click += (_, _) => { if (!_filling) { _statusDirty = true; UpdateDraftHint(); } };
+        foreach (var text in new[] { RepairMemo, StatusMemo, PreQuota, PostQuota }) text.TextChanged += (_, _) => { if (!_filling) { _statusDirty = true; UpdateDraftHint(); } };
         _initializing = false;
         SetTemplate(); UpdateSummary(); InitializeNavigation(); InitializeUpdater();
     }
@@ -69,10 +69,10 @@ public partial class MainWindow : Window
     }
     private void Log(string text)
     {
-        StatusText.Text = text; LogBox.AppendText($"{DateTime.Now:HH:mm:ss}  {text}\n");
+        StatusText.Foreground = (Brush)FindResource("TextBrush"); StatusText.Text = text; StatusText.ToolTip = text; LogBox.AppendText($"{DateTime.Now:HH:mm:ss}  {text}\n");
         if (LogBox.Text.Length > 20000) LogBox.Text = LogBox.Text[^16000..]; LogBox.ScrollToEnd();
     }
-    private void Error(Exception ex) { Log("오류 · " + ex.Message); if (!TestMode) MessageBox.Show(this, ex.Message, "보람 RMS Lite", MessageBoxButton.OK, MessageBoxImage.Warning); }
+    private void Error(Exception ex) { Log("처리하지 못했습니다 · " + ex.Message); StatusText.Foreground = ImageItem.Brush("#AC4942"); StatusText.ToolTip = ex.Message; }
     private bool Writable()
     {
         if (_busy || _loading) { Log("현재 처리가 끝난 뒤 다시 시도하세요."); return false; }
@@ -163,7 +163,7 @@ public partial class MainWindow : Window
         {
             if (tab == null) { AllItems = new(); Rebind(); ClearSelection(); return; }
             Log("이미지 목록을 읽는 중입니다.");
-            var data = await Task.Run(() => LocalData.Load(tab.Context, cancellation.Token));
+            var data = await Task.Run(() => LiteWorkspace.Load(tab.Context, cancellation.Token));
             cancellation.Token.ThrowIfCancellationRequested();
             if (version != _loadGeneration || _closing) return;
             AllItems = data;
@@ -182,7 +182,7 @@ public partial class MainWindow : Window
     }
     private void WatchChanged(object sender, FileSystemEventArgs e)
     {
-        if (e.FullPath.Contains(Path.DirectorySeparatorChar + ".boramrms" + Path.DirectorySeparatorChar) || DateTime.UtcNow < _ignoreWatcherUntil) return;
+        if (e.FullPath.Split(Path.DirectorySeparatorChar).Any(p => p is ".boramrms" or ".rmslite") || DateTime.UtcNow < _ignoreWatcherUntil) return;
         Dispatcher.BeginInvoke(() => { if (!_closing && !_busy) StatusText.Text = "폴더 변경 감지 · 입력을 저장한 뒤 F5로 새로고침하세요."; });
     }
     public void Rebind(string? preferred = null)
@@ -191,7 +191,7 @@ public partial class MainWindow : Window
         preferred ??= (ImageList.SelectedItem as ImageItem)?.FullPath;
         var keyword = SearchText.Text.Trim(); var status = StatusFilter.SelectedItem as string ?? "전체";
         IEnumerable<ImageItem> query = AllItems.Where(i => keyword.Length == 0 || i.FileName.Contains(keyword, StringComparison.CurrentCultureIgnoreCase) || i.Details.Contains(keyword, StringComparison.CurrentCultureIgnoreCase));
-        query = query.Where(i => status switch { "전체" => true, "CMS" => !i.Card, "카드" => i.Card, "등록 여부 확인 안 됨" => true, _ => i.Status.Contains(status) });
+        query = query.Where(i => status switch { "전체" => true, "CMS" => !i.Card, "카드" => i.Card, _ => i.Status.Contains(status) });
         query = SortMode.SelectedIndex switch { 1 => query.OrderBy(i => int.TryParse(i.Quota, out var n) ? n : 1000).ThenBy(i => i.Name, StringComparer.CurrentCultureIgnoreCase), 2 => query.OrderBy(i => i.FileName, StringComparer.CurrentCultureIgnoreCase), _ => query.OrderBy(i => _active?.Order.GetValueOrDefault(i.FullPath) ?? i.Index) };
         var visible = query.ToList(); _selecting = true;
         ImageList.ItemsSource = visible; ImageList.SelectedItem = visible.FirstOrDefault(i => preferred != null && SafePaths.Same(i.FullPath, preferred)) ?? visible.FirstOrDefault(); _selecting = false;
@@ -214,7 +214,7 @@ public partial class MainWindow : Window
         NewFileText.Text = "—"; ImageError.Text = "";
         if (_active == null) OriginalDirText.Text = "선택된 폴더 없음";
         _filling = false; _dirty = _statusDirty = false;
-        PreviewImage.Source = null; EmptyHint.Visibility = Visibility.Visible; SelectedFileText.Text = "선택된 이미지 없음"; CurrentFileText.Text = "—"; ImageDetails.Text = "등록 여부 확인 안 됨"; UpdateSummary();
+        PreviewImage.Source = null; EmptyHint.Visibility = Visibility.Visible; SelectedFileText.Text = "선택된 이미지 없음"; CurrentFileText.Text = "—"; ImageDetails.Text = "상태는 Lite에만 저장합니다"; UpdateSummary();
     }
     private async Task ShowSelectionAsync(ImageItem? item)
     {
@@ -222,10 +222,11 @@ public partial class MainWindow : Window
         if (item == null) { ClearSelection(); return; }
         _editing = item; _filling = true;
         CombinedTextBox.Text = item.Key; CurrentFileText.Text = item.RelativePath; SelectedFileText.Text = item.FileName;
-        LoadStatus(item); _filling = false; _dirty = _statusDirty = false;
+        LoadStatus(item); _filling = false; _dirty = _statusDirty = false; UpdateDraftHint();
+        if (item.StateNotice.Length > 0) Log(item.StateNotice);
         if (_active != null) _active.SelectedPath = item.FullPath;
         PreviewImage.Source = null; ImageError.Text = ""; EmptyHint.Visibility = Visibility.Collapsed;
-        ImageDetails.Text = item.StatusLabel + " · " + item.Registration;
+        ImageDetails.Text = item.StatusLabel + " · Lite 상태";
         UpdateSummary();
         try
         {
@@ -233,7 +234,7 @@ public partial class MainWindow : Window
             if (generation != _previewGeneration || _closing) return;
             PreviewImage.Source = source;
             ApplyImageViewport(source);
-            ImageDetails.Text = $"{source.PixelWidth} × {source.PixelHeight}px · {item.Length / 1024.0:0}KB · {item.StatusLabel} · 등록 여부 확인 안 됨";
+            ImageDetails.Text = $"{source.PixelWidth} × {source.PixelHeight}px · {item.Length / 1024.0:0}KB · {item.StatusLabel} · Lite 상태";
         }
         catch (Exception ex) { if (generation == _previewGeneration) { EmptyHint.Visibility = Visibility.Visible; ImageError.Text = ex.Message; } }
     }
@@ -252,27 +253,12 @@ public partial class MainWindow : Window
     private void Rename_TextChanged(object s, TextChangedEventArgs e)
     {
         if (_initializing || NewFileText == null) return;
-        NewFileText.Text = CombinedTextBox.Text.Trim() + (_editing == null ? "" : Path.GetExtension(_editing.FileName));
-        if (!_filling) _dirty = true;
+        NewFileText.Text = SafePaths.NormalizeQuotaName(CombinedTextBox.Text) + (_editing == null ? "" : Path.GetExtension(_editing.FileName));
+        if (!_filling) { _dirty = true; UpdateDraftHint(); }
     }
     private async void SaveNext_Click(object s, RoutedEventArgs e) => await SaveRenameAsync(true);
     private async void SaveOnly_Click(object s, RoutedEventArgs e) => await SaveRenameAsync(false);
-    public async Task SaveRenameAsync(bool next)
-    {
-        if (!Writable() || _editing == null || _active == null || !ConfirmOtherInput(_statusDirty, "상태")) return;
-        var old = _editing; var tab = _active; var input = CombinedTextBox.Text; var visible = ImageList.Items.Cast<ImageItem>().ToList();
-        var nextPath = visible.Skip(visible.IndexOf(old) + 1).FirstOrDefault()?.FullPath;
-        _busy = true; _ignoreWatcherUntil = DateTime.UtcNow.AddSeconds(2);
-        try
-        {
-            var target = await Task.Run(() => LocalData.Rename(tab.Context, old, input));
-            if (tab.Order.Remove(old.FullPath, out var order)) tab.Order[target] = order;
-            _dirty = _statusDirty = false; await ReloadAsync(next && nextPath != null ? nextPath : target);
-            Log("저장 완료 · " + Path.GetFileName(target));
-        }
-        catch (Exception ex) { Error(ex); }
-        finally { _busy = false; FocusRenameInput(); }
-    }
+    public Task SaveRenameAsync(bool next) => LastSaveTask = SaveDraftAsync(next);
     public void MoveImage(int offset)
     {
         if (_busy || _loading || !ConfirmDiscard()) return;
@@ -285,42 +271,14 @@ public partial class MainWindow : Window
     }
     private void NextImage_Click(object s, RoutedEventArgs e) => MoveImage(1);
     private void PreviousImage_Click(object s, RoutedEventArgs e) => MoveImage(-1);
-    private async void ApplyStatus_Click(object s, RoutedEventArgs e)
+    private async void ApplyStatus_Click(object s, RoutedEventArgs e) => await SaveRenameAsync(false);
+    private void ClearStatus_Click(object s, RoutedEventArgs e)
     {
-        if (!Writable() || _editing == null || _active == null || !ConfirmOtherInput(_dirty, "파일명")) return;
-        try
-        {
-            var selected = _statusBoxes.Where(p => p.Key.IsChecked == true).Select(p => p.Value).ToList();
-            var repairs = RepairReasons.Children.OfType<CheckBox>().Where(c => c.IsChecked == true).Select(c => c.Content.ToString()!).ToList();
-            if (MinorCheck.IsChecked == true) repairs.Add("미성년자");
-            if (RepairMemo.Text.Trim().Length > 0) repairs.Add(RepairMemo.Text.Trim());
-            if (repairs.Count > 0) selected.Add("보완");
-            if (selected.Count > 1) throw new ArgumentException("기타 상태는 하나만 선택하세요. 보완 사유는 여러 개 선택할 수 있습니다.");
-            string? state = selected.FirstOrDefault(); var details = state == "보완" ? string.Join(", ", repairs) : StatusMemo.Text.Trim(); string? stem = null;
-            if (state == null && CardCheck.IsChecked == _editing.Card) throw new ArgumentException("변경할 상태를 선택하세요.");
-            if (state is "입력전 변경" or "입력후 변경")
-            {
-                var value = state == "입력전 변경" ? PreQuota.Text : PostQuota.Text;
-                if (!int.TryParse(value.Trim(), out var quota) || quota is < 1 or > 99 || _editing.Quota.Length == 0) throw new ArgumentException("원래 구좌수와 1~99 범위의 최종 구좌수를 확인하세요.");
-                if (state == "입력전 변경" && quota.ToString() == _editing.Quota) throw new ArgumentException("변경 전후 구좌수가 같습니다.");
-                details = $"{_editing.Quota}구좌-->{quota}구좌" + (details.Length > 0 ? " / " + details : "");
-                if (state == "입력전 변경") stem = SafePaths.ValidName(quota + _editing.Name);
-            }
-            await ChangeStatusAsync(stem, state, details, CardCheck.IsChecked == true);
-        }
-        catch (Exception ex) { Error(ex); }
-    }
-    private async Task ChangeStatusAsync(string? stem, string? status, string details, bool card)
-    {
-        var item = _editing!; var tab = _active!; _busy = true; _ignoreWatcherUntil = DateTime.UtcNow.AddSeconds(2);
-        try { var target = await Task.Run(() => LocalData.Change(tab.Context, item, stem, status, details, card)); if (tab.Order.Remove(item.FullPath,out var n)) tab.Order[target] = n; _dirty = _statusDirty = false; await ReloadAsync(target); Log("로컬 상태 저장 완료"); }
-        finally { _busy = false; }
-    }
-    private async void ClearStatus_Click(object s, RoutedEventArgs e)
-    {
-        if (!Writable() || _editing == null) return;
-        if (MessageBox.Show(this, "상태 기록을 제거하고 CMS 원본 위치로 되돌릴까요?", "상태 제거", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes) return;
-        try { await ChangeStatusAsync(null, "", "", false); } catch (Exception ex) { Error(ex); }
+        if (_busy || _editing == null) return;
+        foreach (var box in _statusBoxes.Keys.Concat(RepairReasons.Children.OfType<CheckBox>()).Append(CardCheck).Append(MinorCheck)) box.IsChecked = false;
+        foreach (var text in new[] { RepairMemo, StatusMemo, PreQuota, PostQuota }) text.Clear();
+        _statusDirty = true; UpdateDraftHint();
+        Log("상태 선택을 비웠습니다. 저장하면 적용됩니다.");
     }
     private void UpdateSummary()
     {
@@ -366,22 +324,9 @@ public partial class MainWindow : Window
     {
         if (!Writable() || _editing == null || _active == null || !ConfirmDiscard()) return;
         var item = _editing; var ctx = _active.Context; _busy = true; _ignoreWatcherUntil = DateTime.UtcNow.AddSeconds(2);
-        try { await Task.Run(() => ImageProcessing.Rotate(ctx, item, clockwise)); await ReloadAsync(item.FullPath); Log("90도 원본 회전 저장 · 되돌리기로 복구할 수 있습니다."); } catch (Exception ex) { Error(ex); } finally { _busy = false; }
+        try { _lastLiteEdits[ctx.Root] = await Task.Run(() => LiteWorkspace.Rotate(ctx, item, clockwise)); await ReloadAsync(item.FullPath); Log("90도 회전 저장 · 이번 실행의 되돌리기로 복구할 수 있습니다."); } catch (Exception ex) { Error(ex); } finally { _busy = false; }
     }
-    private async void Undo_Click(object s, RoutedEventArgs e)
-    {
-        if (!Writable() || _active == null || !ConfirmDiscard()) return;
-        try
-        {
-            var p = FileChanges.LatestCompleted(LocalData.JournalRoot(_active.Context));
-            if (p == null) { Log("이 폴더에 되돌릴 Lite 작업이 없습니다."); return; }
-            if (MessageBox.Show(this, "현재 폴더의 마지막 Lite 변경을 되돌릴까요? 이후 수정된 파일은 덮어쓰지 않습니다.", "되돌리기", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes) return;
-            var allowed = Tabs.Where(t => t.Lease.Writable).Select(t => t.Context.EventRoot ?? t.Context.Root).ToArray();
-            if (FileChanges.RequiredRoots(p).Any(root => !allowed.Any(a => SafePaths.Same(a, root)))) throw new IOException("이 작업은 여러 폴더에 걸쳐 있습니다. 원래 출발·대상 폴더를 모두 Lite 탭으로 연 뒤 되돌려 주세요.");
-            _busy = true; await Task.Run(() => FileChanges.Undo(p, allowedRoots: allowed)); _dirty = _statusDirty = false; await ReloadAsync(); Log("마지막 작업을 되돌렸습니다.");
-        }
-        catch (Exception ex) { Error(ex); } finally { _busy = false; }
-    }
+    private async void Undo_Click(object s, RoutedEventArgs e) => await UndoDraftAsync();
     private void OpenExplorer_Click(object s, RoutedEventArgs e) { if (_active != null) Process.Start(new ProcessStartInfo(_active.Context.Root) { UseShellExecute = true }); }
     private async void Refresh_Click(object s, RoutedEventArgs e) { if (!_busy && ConfirmDiscard()) await ReloadAsync(_active?.SelectedPath); }
     private void Window_Closing(object? s, CancelEventArgs e)
@@ -411,18 +356,5 @@ public partial class MainWindow : Window
         window.Show();
     }
     private void ResetLayout_Click(object s, RoutedEventArgs e) { if (_busy || _loading) return; foreach (var w in _docks.Values.ToArray()) w.Close(); LeftColumn.Width = new GridLength(316); RightColumn.Width = new GridLength(288); Fit(); }
-    private async void Recycle_Click(object s, RoutedEventArgs e)
-    {
-        if (!Writable() || _active == null) return;
-        if (_active.Context.EventRoot != null) { Log("행사 원본 삭제는 지원하지 않습니다. 보완자료/일반 이미지 폴더에서만 사용할 수 있습니다."); return; }
-        var selected = ImageList.SelectedItems.Cast<ImageItem>().ToList(); if (selected.Count == 0 || !ConfirmDiscard()) return;
-        if (MessageBox.Show(this, $"선택한 {selected.Count}개 원본과 같은 이름의 jpg 사본을 휴지통으로 이동할까요?\n" + string.Join("\n", selected.Take(8).Select(i => i.FileName)), "휴지통 이동", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes) return;
-        _busy = true; var errors = new List<string>(); var done = 0; var root = _active.Context.Root;
-        try
-        {
-            await Task.Run(() => { foreach (var item in selected) try { LocalData.EnsureUnchanged(item); Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile(item.FullPath, Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs, Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin); done++; var copy = Path.Combine(root,"jpg",item.FileName); if (File.Exists(copy)) Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile(copy, Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs, Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin); } catch (Exception ex) { errors.Add(item.FileName + ": " + ex.Message); } });
-            _dirty = _statusDirty = false; await ReloadAsync(); Log($"휴지통 이동 {done}개 · 오류 {errors.Count}개" + (errors.Count == 0 ? "" : "\n" + string.Join("\n", errors)));
-        }
-        finally { _busy = false; }
-    }
+
 }

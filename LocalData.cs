@@ -110,7 +110,7 @@ public static class LocalData
             foreach (var sub in Directory.EnumerateDirectories(dir))
             {
                 var name = Path.GetFileName(sub);
-                if (name is ".boramrms" or ".git" or "[참고자료]" || name.Equals("jpg", StringComparison.OrdinalIgnoreCase) || File.Exists(Path.Combine(sub, OutputMarker))) continue;
+                if (name.StartsWith('.') || name == "[참고자료]" || name.Equals("jpg", StringComparison.OrdinalIgnoreCase) || File.Exists(Path.Combine(sub, OutputMarker))) continue;
                 if ((File.GetAttributes(sub) & FileAttributes.ReparsePoint) != 0) continue;
                 stack.Push(sub);
             }
@@ -158,7 +158,15 @@ public static class LocalData
         SafePaths.NoLinks(item.FullPath); var f = new FileInfo(item.FullPath);
         if (!f.Exists || f.Length != item.Length || f.LastWriteTimeUtc.Ticks != item.ModifiedTicks) throw new IOException("선택 파일이 외부에서 변경되었습니다. 새로고침 후 다시 선택하세요.");
     }
-    public static string Rename(FolderContext ctx, ImageItem item, string input) => Change(ctx, item, SafePaths.ValidName(input), null, item.Details, item.Card);
+    public static string Rename(FolderContext ctx, ImageItem item, string input)
+    {
+        var name = SafePaths.ValidName(input);
+        if (!SafePaths.Under(item.FullPath, ctx.Root)) throw new IOException("선택 폴더 밖의 이미지입니다.");
+        EnsureUnchanged(item);
+        // Unchanged input must not rewrite metadata or create a recovery journal.
+        if (Path.GetFileNameWithoutExtension(item.FileName).Equals(name, StringComparison.Ordinal)) return item.FullPath;
+        return Change(ctx, item, name, null, item.Details, item.Card);
+    }
     public static string Change(FolderContext ctx, ImageItem item, string? newStem, string? status, string details, bool card)
     {
         EnsureUnchanged(item);
