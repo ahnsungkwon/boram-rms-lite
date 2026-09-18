@@ -202,7 +202,7 @@ public partial class MainWindow : Window
         foreach (var text in new[] { RepairMemo, StatusMemo, PreQuota, PostQuota }) text.Text = "";
         NewFileText.Text = "—"; ImageError.Text = "";
         if (_active == null) OriginalDirText.Text = "선택된 폴더 없음";
-        _filling = false; _dirty = _statusDirty = false;
+        _filling = false; _dirty = _statusDirty = false; _autoSaveError = null; UpdateDraftHint();
         PreviewImage.Source = null; EmptyHint.Visibility = Visibility.Visible; SelectedFileText.Text = "선택된 이미지 없음"; CurrentFileText.Text = "—"; ImageDetails.Text = "상태는 Lite에만 저장합니다"; UpdateSummary();
     }
     private async Task ShowSelectionAsync(ImageItem? item)
@@ -240,7 +240,9 @@ public partial class MainWindow : Window
     private void Rename_TextChanged(object s, TextChangedEventArgs e)
     {
         if (_initializing || NewFileText == null) return;
-        NewFileText.Text = SafePaths.NormalizeQuotaName(CombinedTextBox.Text) + (_editing == null ? "" : Path.GetExtension(_editing.FileName));
+        NewFileText.Text = _editing != null && string.IsNullOrWhiteSpace(CombinedTextBox.Text)
+            ? "기존 파일명 유지 · " + _editing.FileName
+            : SafePaths.NormalizeQuotaName(CombinedTextBox.Text) + (_editing == null ? "" : Path.GetExtension(_editing.FileName));
         if (!_filling) { _dirty = _editing != null && SafePaths.NormalizeQuotaName(CombinedTextBox.Text) != _editing.Key; UpdateDraftHint(); }
     }
     private async void SaveNext_Click(object s, RoutedEventArgs e) => await SaveRenameAsync(true);

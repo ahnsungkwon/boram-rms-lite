@@ -54,13 +54,13 @@ def build() -> None:
     summary = (proof / 'SUMMARY.txt').read_text(encoding='utf-8')
     results = json.loads((proof / 'test-results.json').read_text(encoding='utf-8'))
     # 0.4 replaces legacy cross-folder/journal tests with the actual simple workflow.
-    required_workflow = {f'W{n:02d}' for n in range(1, 21)} | {f'A{n:02d}' for n in range(1, 25)}
+    required_workflow = {f'W{n:02d}' for n in range(1, 21)} | {f'A{n:02d}' for n in range(1, 25)} | {f'B{n:02d}' for n in range(1, 13)}
     covered_workflow = {item.get('Name', '').split(' ', 1)[0] for item in results}
-    if len(results) < 83 or not required_workflow.issubset(covered_workflow) or not all(item.get('Passed') is True for item in results) or not summary.startswith(f'PASS {len(results)}\nFAIL 0'):
+    if len(results) < 95 or not required_workflow.issubset(covered_workflow) or not all(item.get('Passed') is True for item in results) or not summary.startswith(f'PASS {len(results)}\nFAIL 0'):
         raise SystemExit('Test failure: package will not be created.')
     for name in ['README.md', 'README_KO.md', 'UPDATE_GUIDE.md', 'CHANGELOG.md', 'SIMPLE_WORKFLOW.md']:
         shutil.copy2(ROOT / name, BUNDLE / name)
-    for name, target in [('SUMMARY.txt', 'TEST_SUMMARY.txt'), ('main-preview.png', 'MAIN_PREVIEW.png'), ('update-preview.png', 'UPDATE_PREVIEW.png'), ('rename-input-preview.png', 'RENAME_INPUT_PREVIEW.png'), ('rms-icon-preview.png', 'RMS_ICON_PREVIEW.png'), ('autosave-preview.png', 'AUTOSAVE_PREVIEW.png')]:
+    for name, target in [('SUMMARY.txt', 'TEST_SUMMARY.txt'), ('main-preview.png', 'MAIN_PREVIEW.png'), ('update-preview.png', 'UPDATE_PREVIEW.png'), ('rename-input-preview.png', 'RENAME_INPUT_PREVIEW.png'), ('rms-icon-preview.png', 'RMS_ICON_PREVIEW.png'), ('autosave-preview.png', 'AUTOSAVE_PREVIEW.png'), ('blank-name-preview.png', 'BLANK_NAME_PREVIEW.png')]:
         shutil.copy2(proof / name, BUNDLE / target)
     entries = sorted(p for p in BUNDLE.rglob('*') if p.is_file())
     forbidden = {'.ttf', '.otf', '.woff', '.woff2', '.pfx', '.pem', '.key', '.dpapi'}

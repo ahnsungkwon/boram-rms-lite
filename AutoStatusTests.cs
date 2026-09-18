@@ -35,9 +35,9 @@ public static class AutoStatusTests
             if (w.IsVisible) { await w.ReloadAsync(); await w.LastPreviewTask; w.Close(); }
         }
     }
-    private static async Task Space(MainWindow w, bool shift)
+    private static async Task Space(MainWindow w, bool control)
     {
-        w.ModifiersForTests = () => shift ? ModifierKeys.Shift : ModifierKeys.None;
+        w.ModifiersForTests = () => control ? ModifierKeys.Control : ModifierKeys.None;
         try
         {
             var args = new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(w), Environment.TickCount, Key.Space) { RoutedEvent = Keyboard.PreviewKeyDownEvent };
@@ -95,7 +95,7 @@ public static class AutoStatusTests
                 Assert(!w.HasPendingStatus && Control<FrameworkElement>(w, "WorkArea").IsEnabled, "저장 후 UI 잠금");
             });
         });
-        await checkAsync("A09 Space 다음·Shift+Space 이전 실제 키 이벤트와 이름 저장", async () =>
+        await checkAsync("A09 Space 다음·Ctrl+Space 이전 실제 키 이벤트와 이름 저장", async () =>
         {
             var c = Fixture(root, "key-directions", 3);
             await InWindow(c, async w =>
@@ -103,7 +103,7 @@ public static class AutoStatusTests
                 Control<TextBox>(w, "CombinedTextBox").Text = "4가상앞"; await Space(w, false);
                 Assert(File.Exists(Path.Combine(c.Root, "4가상앞.png")) && ((ImageItem)Control<ListBox>(w, "ImageList").SelectedItem).Quota == "2", "Space 저장/다음 실패");
                 Control<TextBox>(w, "CombinedTextBox").Text = "5가상뒤"; await Space(w, true);
-                Assert(File.Exists(Path.Combine(c.Root, "5가상뒤.png")) && ((ImageItem)Control<ListBox>(w, "ImageList").SelectedItem).Quota == "4", "Shift+Space 저장/이전 실패");
+                Assert(File.Exists(Path.Combine(c.Root, "5가상뒤.png")) && ((ImageItem)Control<ListBox>(w, "ImageList").SelectedItem).Quota == "4", "Ctrl+Space 저장/이전 실패");
             });
         });
         await checkAsync("A10 체크 저장 중 다음 이동은 완료를 기다리고 다른 이미지에 적용하지 않음", async () =>
@@ -225,7 +225,7 @@ public static class AutoStatusTests
                 Assert(restore.Content.ToString() == "이전 폴더 열기" && restore.ToolTip.ToString()!.Contains("파일 내용은 되돌리지"), "폴더 복원 설명 불명확");
                 await w.RestorePreviousFoldersAsync();
                 Assert(((ImageItem)Control<ListBox>(w, "ImageList").SelectedItem).FullPath == file && before.All(p => SafePaths.Hash(p.Key) == p.Value), "폴더 재개가 데이터 복구를 실행함");
-                Assert(MainWindow.WorkflowHelpText.Contains("Shift+Space") && MainWindow.WorkflowHelpText.Contains("파일 삭제·300KB 압축·업데이트는 취소할 수 없"), "사용 안내 누락");
+                Assert(MainWindow.WorkflowHelpText.Contains("Ctrl+Space") && MainWindow.WorkflowHelpText.Contains("파일 삭제·300KB 압축·업데이트는 취소할 수 없"), "사용 안내 누락");
             });
         });
         await checkAsync("A19 보완·카드·추가·미성년자 조합 보존과 취소 상태 상호 전환", async () =>
@@ -249,7 +249,7 @@ public static class AutoStatusTests
                 Control<TextBox>(w, "CombinedTextBox").Text = "2가상경계"; await Space(w, true);
                 Assert(File.Exists(Path.Combine(c.Root, "2가상경계.png")) && Control<ListBox>(w, "ImageList").SelectedIndex == 0, "처음에서 역방향 저장 실패");
                 await Space(w, false); Assert(Control<ListBox>(w, "ImageList").SelectedIndex == 0, "마지막에서 순환 이동함");
-                Assert(MainWindow.SpaceDirection(ModifierKeys.Control) == 0 && MainWindow.SpaceDirection(ModifierKeys.Alt) == 0, "다른 단축키 조합 침범");
+                Assert(MainWindow.SpaceDirection(ModifierKeys.Shift) == 0 && MainWindow.SpaceDirection(ModifierKeys.Alt) == 0, "다른 단축키 조합 침범");
             });
         });
         await checkAsync("A21 자동 상태 저장이 목록 다중 선택을 유지", async () =>

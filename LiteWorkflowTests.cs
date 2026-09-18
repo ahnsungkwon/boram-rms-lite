@@ -168,6 +168,7 @@ public static class LiteWorkflowTests
                 var r=InPlaceCompression.Run(c,LiteWorkspace.Load(c),null,CancellationToken.None); Assert(r.Entries.Count==1&&r.Entries[0].Error.Length==0&&SafePaths.Hash(j)==h,"압축의 옛 기록 차단");
             });
             await AutoStatusTests.RunAsync(run, Check, CheckAsync);
+            await BlankNameTests.RunAsync(run, CheckAsync);
             // Existing image/keyboard/branding/updater checks remain relevant.
             UpdateTests.Run(run,Check); await UiRevisionTests.RunAsync(run,Check,CheckAsync); await BrandInputTests.RunAsync(run,Check,CheckAsync);
             // The unreleased 0.3.2 manual journal-recovery checks are intentionally not part of 0.4's workflow.

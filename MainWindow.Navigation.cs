@@ -13,7 +13,7 @@ public partial class MainWindow
     private int _imeSpaceDirection = 1;
     internal Func<ModifierKeys>? ModifiersForTests { get; set; }
     private ModifierKeys CurrentModifiers => TestMode && ModifiersForTests != null ? ModifiersForTests() : Keyboard.Modifiers;
-    public static int SpaceDirection(ModifierKeys modifiers) => modifiers == ModifierKeys.None ? 1 : modifiers == ModifierKeys.Shift ? -1 : 0;
+    public static int SpaceDirection(ModifierKeys modifiers) => modifiers == ModifierKeys.None ? 1 : modifiers == ModifierKeys.Control ? -1 : 0;
     public Task LastShortcutTask { get; private set; } = Task.CompletedTask;
     private void InitializeNavigation()
     {

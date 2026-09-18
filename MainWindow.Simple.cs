@@ -12,18 +12,33 @@ public partial class MainWindow
     private void UpdateDraftHint()
     {
         if (_initializing || SaveHint == null) return;
-        SaveHint.Text = _dirty ? "파일명 수정 중 · Space 다음 / Shift+Space 이전" : "Space 다음 · Shift+Space 이전 (이름 저장 후 이동)";
-        AutoSaveStatusText.Text = _statusWrites > 0 ? "체크 상태 저장 중…" : _autoSaveError != null ? "상태 저장 실패 · 아래에서 다시 저장하세요" : _statusDirty ? "메모 작성 중 · 입력을 마치면 자동 저장" : "체크·해제 즉시 저장";
+        if (!_statusDirty && _statusWrites == 0) _autoSaveError = null;
+        var blankName = _editing != null && string.IsNullOrWhiteSpace(CombinedTextBox.Text);
+        SaveHint.Text = blankName ? "빈칸이면 기존 파일명 유지 · Space 다음 / Ctrl+Space 이전" : _dirty ? "이름 저장 후 이동 · Space 다음 / Ctrl+Space 이전" : "Space 다음 · Ctrl+Space 이전";
+        AutoSaveStatusText.Text = _statusWrites > 0 ? "체크 상태 저장 중…" : _autoSaveError != null ? "상태 저장 안 됨 · " + _autoSaveError : _statusDirty ? "메모 작성 중 · 입력을 마치면 자동 저장" : "체크·해제 즉시 저장";
         AutoSaveStatusText.Foreground = ImageItem.Brush(_autoSaveError != null && _statusWrites == 0 ? "#AC4942" : "#457752");
         AutoSaveStatusText.ToolTip = _autoSaveError ?? "체크는 이름 저장과 별개로 바로 저장됩니다. 메모는 입력칸을 벗어나면 저장됩니다.";
-        DiscardPendingButton.Visibility = _dirty || _statusDirty && _statusWrites == 0 ? Visibility.Visible : Visibility.Collapsed;
+        DiscardPendingButton.Visibility = Visibility.Visible;
+        DiscardPendingButton.IsEnabled = _editing != null && !_busy && _statusWrites == 0 && (_dirty || _statusDirty || blankName);
+        SaveStateButton.Visibility = _autoSaveError != null && _statusWrites == 0 ? Visibility.Visible : Visibility.Collapsed;
         UpdateHistoryHelp();
     }
-    private bool HasQuotaRename => _editing != null && PreChangeCheck.IsChecked == true && PreQuota.Text.Trim() != _editing.Quota;
+    private bool HasQuotaRename => _editing != null && PreChangeCheck.IsChecked == true && !string.IsNullOrWhiteSpace(PreQuota.Text) && PreQuota.Text.Trim() != _editing.Quota;
+    private void KeepExistingNameWhenBlank()
+    {
+        if (_editing == null || !string.IsNullOrWhiteSpace(CombinedTextBox.Text)) return;
+        // Empty means no rename, never an empty filename or an implicit deletion.
+        var filling = _filling; _filling = true;
+        try { CombinedTextBox.Text = _editing.Key; }
+        finally { _filling = filling; }
+        _dirty = false;
+        Log("기존 파일명 유지 · " + _editing.FileName);
+        UpdateDraftHint();
+    }
     private (string? Name, LiteState State) ReadDraft()
     {
         var item = _editing!;
-        string? name = _dirty ? SafePaths.ValidName(CombinedTextBox.Text) : null;
+        string? name = _dirty && !string.IsNullOrWhiteSpace(CombinedTextBox.Text) ? SafePaths.ValidName(CombinedTextBox.Text) : null;
         var state = _statusDirty ? ReadStatusState() : LiteState.From(item);
         if (HasQuotaRename)
         {
@@ -38,8 +53,10 @@ public partial class MainWindow
     {
         if (_closing || _busy || _loading) return false;
         if (_active == null || _editing == null) return true;
+        KeepExistingNameWhenBlank();
         if (!_dirty && !_statusDirty && _statusWrites == 0 && !HasQuotaRename) return true;
         var tab = _active; var item = _editing;
+        var savingName = _dirty || HasQuotaRename;
         _busy = true;
         try
         {
@@ -67,7 +84,13 @@ public partial class MainWindow
         }
         catch (Exception ex)
         {
-            Error(new IOException("'" + item.FileName + "' 저장 안 됨: " + ex.Message + " 현재 입력은 유지했습니다. 수정 후 다시 저장하거나 '미저장 입력 취소'를 누르세요."));
+            if (savingName)
+                Error(new IOException("'" + item.FileName + "' 이름 저장 안 됨: " + ex.Message + " 이름을 고치거나 빈칸으로 두고 다시 이동하세요. '입력 원래대로' 버튼도 사용할 수 있습니다."));
+            else
+            {
+                _statusDirty = true; _autoSaveError = item.FileName + " · " + ex.Message;
+                Error(new IOException("'" + item.FileName + "' 상태 저장 안 됨: " + ex.Message + " 체크는 유지했습니다. 표시된 '상태 다시 저장' 버튼으로 재시도하세요."));
+            }
             return false;
         }
         finally { _busy = false; UpdateDraftHint(); }
@@ -126,7 +149,7 @@ public partial class MainWindow
         try
         {
             await FlushStatusSavesAsync();
-            if (_dirty || _statusDirty) { Log("현재 파일에 미저장 입력이 있습니다. 저장하거나 '미저장 입력 취소' 후 마지막 변경을 취소하세요."); return; }
+            if (_dirty || _statusDirty) { Log("현재 입력을 저장하거나 '입력 원래대로' 버튼을 누른 뒤 마지막 변경을 취소하세요."); return; }
             if (!_lastLiteEdits.TryGetValue(context.Root, out var edit)) { Log("이번 실행에서 취소할 이름·체크·메모·회전 저장이 없습니다."); return; }
             await _editSerial.WaitAsync();
             try
