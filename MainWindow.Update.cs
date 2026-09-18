@@ -21,10 +21,10 @@ public partial class MainWindow
             catch { if (!_closing) UpdateButton.ToolTip = "새 버전 확인을 완료하지 못했습니다. 클릭하면 인증/연결 상태를 확인할 수 있습니다."; }
         };
     }
-    private void Update_Click(object sender, RoutedEventArgs e)
+    private async void Update_Click(object sender, RoutedEventArgs e)
     {
         if (_busy || _loading) { Log("진행 중인 작업이 끝난 뒤 업데이트하세요."); return; }
-        if (_dirty || _statusDirty) { Log("입력한 파일명과 상태를 먼저 저장하거나 명시적으로 취소한 뒤 업데이트하세요."); return; }
+        if (!await TrySaveCurrentAsync()) return;
         _busy = true; UpdateButton.IsEnabled = false;
         try
         {

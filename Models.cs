@@ -18,6 +18,7 @@ public sealed class ImageItem
     public string Details { get; set; } = "";
     public bool Card { get; set; }
     public string? LiteRevision { get; set; }
+    public LiteSelections? Selections { get; set; }
     public string StateNotice { get; set; } = "";
     public long Length { get; set; }
     public long ModifiedTicks { get; set; }
@@ -28,8 +29,8 @@ public sealed class ImageItem
     public string Key => Quota + Name;
     public BitmapSource? Thumbnail { get; set; }
     public Brush QuotaBrush => Brush(Quota switch { "1" => "#557F45", "2" => "#258573", "3" => "#C08228", "4" => "#C44A48", _ => "#86589B" });
-    public Brush StatusBackground => Brush(Status.Contains("취소") || Status == "오등록" ? "#FCE3E1" : Status == "보완" ? "#FFF1CA" : Status.Contains("변경") ? "#DCF1EC" : Card ? "#EEE7F7" : "#EDF5E8");
-    public Brush StatusForeground => Brush(Status.Contains("취소") || Status == "오등록" ? "#982E2C" : Status == "보완" ? "#825717" : "#314B29");
+    public Brush StatusBackground => Brush(Status.Contains("취소") || Status == "오등록" ? "#FCE3E1" : Status.Contains("보완") ? "#FFF1CA" : Status.Contains("변경") ? "#DCF1EC" : Card ? "#EEE7F7" : "#EDF5E8");
+    public Brush StatusForeground => Brush(Status.Contains("취소") || Status == "오등록" ? "#982E2C" : Status.Contains("보완") ? "#825717" : "#314B29");
     public static Brush Brush(string hex) { var b = (SolidColorBrush)new BrushConverter().ConvertFrom(hex)!; b.Freeze(); return b; }
     public static (string Quota, string Name) Parse(string fileName)
     {

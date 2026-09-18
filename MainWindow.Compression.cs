@@ -8,7 +8,7 @@ public partial class MainWindow
     private async void CompressOriginals_Click(object sender, RoutedEventArgs e)
     {
         if (!Writable() || _active == null) return;
-        if (_dirty || _statusDirty) { Log("입력한 이름·상태를 먼저 저장하거나 취소하세요."); return; }
+        if (!await TrySaveCurrentAsync()) return;
         var items = ImageList.Items.Cast<ImageItem>().ToArray();
         if (items.Length == 0) { Log("현재 표시된 이미지가 없습니다."); return; }
         var candidates = items.Count(i => i.Length >= InPlaceCompression.LimitBytes);

@@ -8,7 +8,7 @@ public partial class MainWindow
     private async void Recycle_Click(object sender, RoutedEventArgs e)
     {
         if (!Writable() || _active == null) return;
-        if (_dirty || _statusDirty) { Log("이름·상태 입력을 먼저 저장하거나 취소한 뒤 휴지통으로 이동하세요."); return; }
+        if (!await TrySaveCurrentAsync()) return;
         var context = _active.Context;
         try
         {

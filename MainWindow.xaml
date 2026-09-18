@@ -34,8 +34,9 @@
      <Border Background="#FFFFFF" CornerRadius="4" Padding="6,3" Margin="8,0,0,0" VerticalAlignment="Center"><TextBlock Text="LITE" Foreground="{StaticResource AccentBrush}" FontSize="10" FontWeight="Bold"/></Border>
     </StackPanel>
     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-     <Button Content="작업 복원" Click="RestoreSession_Click" Style="{StaticResource QuietButton}" Margin="0,0,8,0"/>
-     <Button Content="되돌리기" Click="Undo_Click" Style="{StaticResource QuietButton}" ToolTip="이번 실행의 마지막 이름·상태·회전을 되돌립니다. 삭제·직접 압축은 제외합니다." Margin="0,0,8,0"/>
+     <StackPanel Margin="0,0,10,0"><Button x:Name="RestoreFoldersButton" Content="이전 폴더 열기" Click="RestoreSession_Click" Style="{StaticResource QuietButton}" ToolTip="지난번에 열었던 폴더와 선택 이미지를 다시 엽니다. 파일 내용은 되돌리지 않습니다."/><TextBlock Text="지난번 폴더 다시 열기" FontSize="9" Foreground="{StaticResource MutedTextBrush}" HorizontalAlignment="Center"/></StackPanel>
+     <StackPanel Margin="0,0,10,0"><Button x:Name="UndoLastButton" Content="마지막 변경 취소" Click="Undo_Click" Style="{StaticResource QuietButton}" IsEnabled="False" ToolTipService.ShowOnDisabled="True" ToolTip="현재 폴더의 마지막 이름·체크·메모·회전 저장 1건만 취소합니다."/><TextBlock Text="현재 폴더 · 저장 1건 취소" FontSize="9" Foreground="{StaticResource MutedTextBrush}" HorizontalAlignment="Center"/></StackPanel>
+     <Button x:Name="WorkflowHelpButton" Content="사용 안내" Click="WorkflowHelp_Click" Style="{StaticResource QuietButton}" Margin="0,0,10,0"/>
      <Button x:Name="UpdateButton" Content="업데이트 확인" Click="Update_Click" Margin="0,0,10,0"/>
      <Button Content="+  폴더 선택" Click="OpenFolder_Click" Style="{StaticResource PrimaryButton}" Margin="0"/>
     </StackPanel>
@@ -69,9 +70,11 @@
         <TextBox x:Name="CombinedTextBox" MinHeight="62" Padding="12,9" VerticalContentAlignment="Center" TextWrapping="NoWrap" FontSize="24" FontWeight="Bold" CharacterCasing="Upper" TextChanged="Rename_TextChanged" BorderBrush="#93B29B" AutomationProperties.Name="구좌수와 이름 입력"/>
         <TextBlock x:Name="NewFileText" Text="—" Foreground="{StaticResource AccentBrush}" FontSize="11" TextTrimming="CharacterEllipsis" Margin="0,6,0,8"/>
         <Button x:Name="SaveNextButton" Click="SaveNext_Click" Style="{StaticResource PrimaryButton}" Height="36" Margin="0,0,0,5"><DockPanel><Border DockPanel.Dock="Right" Background="#20FFFFFF" CornerRadius="3" Padding="5,1" Margin="12,0,0,0"><TextBlock Text="Space" Foreground="White" FontSize="10"/></Border><TextBlock Text="저장하고 다음" Foreground="White"/></DockPanel></Button>
-        <UniformGrid Columns="2"><Button Content="저장만" Click="SaveOnly_Click" Margin="0,0,3,0"/><Button Content="건너뛰기" Click="NextImage_Click" Margin="3,0,0,0"/></UniformGrid>
+        <UniformGrid Columns="2"><Button Content="저장만" Click="SaveOnly_Click" Margin="0,0,3,0"/><Button x:Name="SavePreviousButton" Content="저장하고 이전" Click="PreviousImage_Click" Margin="3,0,0,0" ToolTip="Shift+Space · 현재 이름 저장 후 이전 이미지"/></UniformGrid>
         <Border Height="1" Background="{StaticResource LineBrush}" Margin="0,15,0,12"/>
-        <TextBlock x:Name="SaveHint" Text="이름·상태 수정 후 저장하고 다음" Style="{StaticResource Hint}" Margin="0,0,0,10"/>
+        <TextBlock x:Name="SaveHint" Text="Space 다음 · Shift+Space 이전" Style="{StaticResource Hint}" TextWrapping="Wrap" MinHeight="32" Margin="0,0,0,5"/>
+        <Button x:Name="DiscardPendingButton" Content="미저장 입력 취소" Click="DiscardPending_Click" Style="{StaticResource QuietButton}" Visibility="Collapsed" HorizontalAlignment="Left" ToolTip="저장되지 않은 입력만 저장된 값으로 다시 읽습니다. 이미 자동 저장된 체크는 그대로입니다."/>
+        <TextBlock x:Name="AutoSaveStatusText" Text="체크·해제 즉시 저장" Foreground="{StaticResource AccentBrush}" FontSize="11" Margin="0,0,0,8" TextWrapping="Wrap"/>
         <TextBlock Text="보완 사유" Style="{StaticResource SectionTitle}"/>
         <UniformGrid x:Name="RepairReasons" Columns="2" Margin="0,0,0,6">
          <CheckBox Content="화산미기입"/><CheckBox Content="계약일보완"/><CheckBox Content="가입동기보완"/><CheckBox Content="이체희망일보완"/><CheckBox Content="남녀구분미체크"/><CheckBox Content="실명보완"/><CheckBox Content="법인서류보완"/><CheckBox Content="외국인서류보완"/><CheckBox Content="연락처보완"/><CheckBox Content="주소보완"/><CheckBox Content="타인계좌"/><CheckBox Content="계좌보완(CMS)"/>
@@ -81,7 +84,7 @@
         <UniformGrid Columns="2"><CheckBox x:Name="CardCheck" Content="카드"/><CheckBox x:Name="WeekendCheck" Content="주말미등록"/><CheckBox x:Name="AdditionalCheck" Content="추가"/><CheckBox x:Name="PreCancelCheck" Content="입력전취소"/><CheckBox x:Name="PostCancelCheck" Content="입력후취소"/><CheckBox x:Name="MistakeCheck" Content="오기입"/><CheckBox x:Name="MinorCheck" Content="미성년자"/><CheckBox x:Name="WrongCheck" Content="오등록"/></UniformGrid>
         <Grid Margin="0,7,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="110"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="35"/><RowDefinition Height="35"/></Grid.RowDefinitions><CheckBox x:Name="PreChangeCheck" Content="입력전변경"/><TextBox Grid.Column="1" x:Name="PreQuota" ToolTip="변경할 구좌수" Margin="0,0,0,3"/><CheckBox Grid.Row="1" x:Name="PostChangeCheck" Content="입력후변경"/><TextBox Grid.Row="1" Grid.Column="1" x:Name="PostQuota" ToolTip="변경된 구좌수 · 파일명 유지"/></Grid>
         <TextBox x:Name="StatusMemo" Margin="0,6,0,0" ToolTip="상태 메모" AutomationProperties.Name="상태 메모"/>
-        <UniformGrid Columns="2" Margin="0,8,0,0"><Button Content="상태 비우기" Click="ClearStatus_Click" Margin="0,0,3,0"/><Button x:Name="SaveStateButton" Content="이름·상태 저장" Click="ApplyStatus_Click" Margin="3,0,0,0" Background="{StaticResource HeaderBg}" Foreground="{StaticResource AccentDark}"/></UniformGrid>
+        <UniformGrid Columns="2" Margin="0,8,0,0"><Button x:Name="ClearAllStateButton" Content="상태 모두 해제" Click="ClearAllStatus_Click" Margin="0,0,3,0"/><Button x:Name="SaveStateButton" Content="상태 다시 저장" Click="RetryState_Click" Margin="3,0,0,0" Background="{StaticResource HeaderBg}" Foreground="{StaticResource AccentDark}"/></UniformGrid>
        </StackPanel>
       </ScrollViewer>
      </DockPanel>
@@ -141,7 +144,7 @@
   </Grid>
   <StackPanel Grid.Row="3" Margin="14,8,14,8">
    <DockPanel x:Name="CompressionStatus" Visibility="Collapsed" Margin="0,0,0,6"><Button DockPanel.Dock="Right" Content="압축 중단" Click="CancelCompression_Click" Style="{StaticResource SmallButton}"/><ProgressBar x:Name="CompressionProgress" Height="5" VerticalAlignment="Center" Margin="0,0,10,0"/></DockPanel>
-   <DockPanel><TextBlock DockPanel.Dock="Right" x:Name="VersionText" Text="0.4.0" FontSize="10" Foreground="{StaticResource MutedTextBrush}"/><TextBlock x:Name="StatusText" Text="준비 · 폴더를 선택하세요" FontSize="11" TextWrapping="Wrap" Height="30"/></DockPanel>
+   <DockPanel><TextBlock DockPanel.Dock="Right" x:Name="VersionText" Text="0.4.1" FontSize="10" Foreground="{StaticResource MutedTextBrush}"/><TextBlock x:Name="StatusText" Text="준비 · 폴더를 선택하세요" FontSize="11" TextWrapping="Wrap" Height="30"/></DockPanel>
    <Expander x:Name="WorkLogExpander" Header="작업 기록" FontSize="10" Margin="0,3,0,0"><TextBox x:Name="LogBox" IsReadOnly="True" Height="90" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" FontSize="11"/></Expander>
   </StackPanel>
  </Grid>

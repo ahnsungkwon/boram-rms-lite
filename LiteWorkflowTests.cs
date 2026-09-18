@@ -127,10 +127,10 @@ public static class LiteWorkflowTests
                 var edit=LiteWorkspace.Rotate(c,old,true); Assert(ImageProcessing.Load(old.FullPath).PixelWidth==1120,"회전 실패"); LiteWorkspace.Undo(c,edit);
                 Assert(SafePaths.Hash(old.FullPath)==hash&&File.ReadAllText(journal).Contains("recovering"),"회전 복원 또는 옛 기록 보존 실패");
             });
-            await CheckAsync("W14 상태 저장 버튼: 과거 미완료 기록이 있어도 카드 상태 반영",async()=>
+            await CheckAsync("W14 과거 미완료 기록이 있어도 체크만으로 카드 상태 즉시 반영",async()=>
             {
                 var c=Folder(run,"ui-state",true); SelfTest.AddImage(c.Root,"1가상가.png"); var journal=OldPending(c); var h=SafePaths.Hash(journal);
-                await Window(c,async w=> { CheckBox(w,"CardCheck",true); ((Button)w.FindName("SaveStateButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await w.LastSaveTask; await w.LastPreviewTask;
+                await Window(c,async w=> { CheckBox(w,"CardCheck",true); await w.LastAutoSaveTask; await w.LastPreviewTask;
                     Assert(w.AllItems.Single().Card&&!w.HasPendingStatus&&SafePaths.Hash(journal)==h,"상태 버튼 저장 실패"); });
             });
             await CheckAsync("W15 이름+상태 수정 후 저장하고 다음: 하나의 사용자 동작",async()=>
@@ -150,7 +150,7 @@ public static class LiteWorkflowTests
             {
                 var c=Folder(run,"ui-failure"); SelfTest.AddImage(c.Root,"1가상가.png");
                 await Window(c,async w=> { ((TextBox)w.FindName("CombinedTextBox")).Text="잘못된이름"; CheckBox(w,"CardCheck",true); await w.SaveDraftAsync(true);
-                    Assert(w.HasPendingRename&&w.HasPendingStatus&&((TextBox)w.FindName("CombinedTextBox")).Text=="잘못된이름"&&((FrameworkElement)w.FindName("WorkArea")).IsEnabled,"실패 시 입력 손실/영구 잠금"); });
+                    Assert(w.HasPendingRename&&!w.HasPendingStatus&&LiteWorkspace.Load(c).Single().Card&&((TextBox)w.FindName("CombinedTextBox")).Text=="잘못된이름"&&((FrameworkElement)w.FindName("WorkArea")).IsEnabled,"이름 저장 실패 시 입력 손실 또는 독립 체크 저장 실패"); });
             });
             await CheckAsync("W18 새 창에서 상태 복원, 과거 되돌리기와 복구 버튼 없음",async()=>
             {
@@ -167,6 +167,7 @@ public static class LiteWorkflowTests
                 var c=Folder(run,"compress-old"); SelfTest.AddImage(c.Root,"1가상가.png"); var j=OldPending(c); var h=SafePaths.Hash(j);
                 var r=InPlaceCompression.Run(c,LiteWorkspace.Load(c),null,CancellationToken.None); Assert(r.Entries.Count==1&&r.Entries[0].Error.Length==0&&SafePaths.Hash(j)==h,"압축의 옛 기록 차단");
             });
+            await AutoStatusTests.RunAsync(run, Check, CheckAsync);
             // Existing image/keyboard/branding/updater checks remain relevant.
             UpdateTests.Run(run,Check); await UiRevisionTests.RunAsync(run,Check,CheckAsync); await BrandInputTests.RunAsync(run,Check,CheckAsync);
             // The unreleased 0.3.2 manual journal-recovery checks are intentionally not part of 0.4's workflow.

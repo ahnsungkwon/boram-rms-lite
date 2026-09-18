@@ -10,6 +10,10 @@ namespace BoramRms.Lite;
 public partial class MainWindow
 {
     private bool _spaceInFlight, _imeSpacePending;
+    private int _imeSpaceDirection = 1;
+    internal Func<ModifierKeys>? ModifiersForTests { get; set; }
+    private ModifierKeys CurrentModifiers => TestMode && ModifiersForTests != null ? ModifiersForTests() : Keyboard.Modifiers;
+    public static int SpaceDirection(ModifierKeys modifiers) => modifiers == ModifierKeys.None ? 1 : modifiers == ModifierKeys.Shift ? -1 : 0;
     public Task LastShortcutTask { get; private set; } = Task.CompletedTask;
     private void InitializeNavigation()
     {
@@ -43,16 +47,17 @@ public partial class MainWindow
     private void Window_KeyDown(object sender, KeyEventArgs e)
     {
         var key = e.Key == Key.ImeProcessed ? e.ImeProcessedKey : e.Key;
-        if (key == Key.Space && Keyboard.Modifiers == ModifierKeys.None && CanHandleSpace(e.OriginalSource as DependencyObject))
+        var direction = SpaceDirection(CurrentModifiers);
+        if (key == Key.Space && direction != 0 && CanHandleSpace(e.OriginalSource as DependencyObject))
         {
             if (e.Key == Key.ImeProcessed)
             {
                 // Let the input method finish Korean text; act only on this window's key-up.
-                if (!e.IsRepeat) _imeSpacePending = true;
+                if (!e.IsRepeat) { _imeSpacePending = true; _imeSpaceDirection = direction; }
                 return;
             }
             e.Handled = true;
-            if (!e.IsRepeat) LastShortcutTask = AdvanceWithSpaceAsync();
+            if (!e.IsRepeat) LastShortcutTask = AdvanceWithSpaceAsync(direction);
             return;
         }
         if (key == Key.Escape && _compressionCancellation != null) { _compressionCancellation.Cancel(); e.Handled = true; return; }
@@ -69,9 +74,9 @@ public partial class MainWindow
         if (!_imeSpacePending || key != Key.Space) return;
         _imeSpacePending = false;
         if (!CanHandleSpace(e.OriginalSource as DependencyObject)) return;
-        e.Handled = true; LastShortcutTask = AdvanceWithSpaceAsync();
+        e.Handled = true; LastShortcutTask = AdvanceWithSpaceAsync(_imeSpaceDirection);
     }
-    public async Task AdvanceWithSpaceAsync()
+    public async Task AdvanceWithSpaceAsync(int direction = 1)
     {
         if (_spaceInFlight || _busy || _loading || _closing || _editing == null) return;
         _spaceInFlight = true; var item = _editing;
@@ -79,8 +84,7 @@ public partial class MainWindow
         {
             await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.Background);
             if (_closing || _busy || _loading || _editing != item) return;
-            if (_dirty || _statusDirty) await SaveDraftAsync(true);
-            else MoveImage(1);
+            await NavigateImageAsync(direction);
         }
         catch (Exception ex) { Error(ex); }
         finally { _spaceInFlight = false; }

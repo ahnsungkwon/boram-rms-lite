@@ -6,9 +6,10 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 namespace BoramRms.Lite;
 
-public sealed record LiteState(string Status, string Details, bool Card)
+public sealed record LiteSelections(string Repairs = "", string Flags = "", string RepairMemo = "", string Memo = "", string PreQuota = "", string PostQuota = "");
+public sealed record LiteState(string Status, string Details, bool Card, LiteSelections? Selections = null)
 {
-    public static LiteState From(ImageItem item) => new(item.Status, item.Details, item.Card);
+    public static LiteState From(ImageItem item) => new(item.Status, item.Details, item.Card, item.Selections);
 }
 public sealed class LiteRecord
 {
@@ -17,6 +18,7 @@ public sealed class LiteRecord
     public string Status { get; set; } = "";
     public string Details { get; set; } = "";
     public bool Card { get; set; }
+    public LiteSelections? Selections { get; set; }
     public string? RenameFrom { get; set; }
     public string? ImageHash { get; set; }
 }
@@ -48,7 +50,7 @@ public static class LiteWorkspace
             throw new IOException("이 이미지가 읽기 전용입니다. 파일 속성을 확인하세요.");
     }
     private static LiteRecord Record(string path, LiteState state, string? from = null, string? hash = null) =>
-        new() { FileName = Path.GetFileName(path), Status = state.Status, Details = state.Details, Card = state.Card, RenameFrom = from, ImageHash = hash };
+        new() { FileName = Path.GetFileName(path), Status = state.Status, Details = state.Details, Card = state.Card, Selections = state.Selections, RenameFrom = from, ImageHash = hash };
     private static void WriteRecord(string image, LiteRecord record, string? expected)
     {
         var path = StatePath(image); SafePaths.NoLinks(path);
@@ -102,7 +104,7 @@ public static class LiteWorkspace
                         if (Path.GetFileName(record.RenameFrom) != record.RenameFrom || record.ImageHash != SafePaths.Hash(path) || File.Exists(Path.Combine(file.DirectoryName!, record.RenameFrom)))
                             throw new InvalidDataException("이 이미지의 이전 리네임 상태는 확정되지 않았습니다.");
                     }
-                    item.Status = record.Status ?? ""; item.Details = record.Details ?? ""; item.Card = record.Card;
+                    item.Status = record.Status ?? ""; item.Details = record.Details ?? ""; item.Card = record.Card; item.Selections = record.Selections;
                 }
             }
             catch (Exception ex)
@@ -124,7 +126,7 @@ public static class LiteWorkspace
     {
         CheckImage(context, item);
         if (!SafePaths.Same(Path.GetDirectoryName(item.FullPath)!, Path.GetDirectoryName(target)!)) throw new IOException("Lite 리네임은 같은 폴더 안에서만 수행합니다.");
-        if (state.Status.Length > 100 || state.Details.Length > 10000) throw new ArgumentException("상태 메모가 너무 깁니다.");
+        if (state.Status.Length > 256 || state.Details.Length > 10000) throw new ArgumentException("상태 메모가 너무 깁니다.");
         var rename = !SafePaths.Same(item.FullPath, target);
         if (rename && (File.Exists(target) || Directory.Exists(target))) throw new IOException("같은 이름의 파일이 있습니다. 다른 이름을 입력하세요.");
         var before = LiteState.From(item);
