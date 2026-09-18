@@ -171,6 +171,7 @@ public static class LiteWorkflowTests
             await BlankNameTests.RunAsync(run, CheckAsync);
             await ThemeTests.RunAsync(run, Check, CheckAsync);
             await CompactWorkspaceTests.RunAsync(run, Check, CheckAsync);
+            await DockLayoutTests.RunAsync(run, CheckAsync);
             // Existing image/keyboard/branding/updater checks remain relevant.
             UpdateTests.Run(run,Check); await UiRevisionTests.RunAsync(run,Check,CheckAsync); await BrandInputTests.RunAsync(run,Check,CheckAsync);
             // The unreleased 0.3.2 manual journal-recovery checks are intentionally not part of 0.4's workflow.

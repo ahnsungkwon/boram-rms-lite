@@ -32,7 +32,7 @@ public partial class MainWindow
             if (dialog.ShowDialog() != true || dialog.Prepared == null) return;
             var appRoot = dialog.Prepared.AppRoot;
             if (Tabs.Any(t => SafePaths.Under(t.Context.Root, appRoot) || SafePaths.Under(appRoot, t.Context.Root))) throw new IOException("앱 설치 폴더와 업무 탭 범위가 겹칩니다. 신청서 자료는 앱 폴더와 분리해서 사용하세요.");
-            SettingsStore.Save(new SavedSettings { Width = Width, Height = Height, LeftWidth = LeftColumn.ActualWidth, RightWidth = RightColumn.ActualWidth, Folders = Tabs.Select(t => t.Context.Root).ToList(), Selected = Tabs.Where(t => t.SelectedPath != null).ToDictionary(t => t.Context.Root, t => t.SelectedPath!), Thumbnails = _thumbnails });
+            SettingsStore.Save(new SavedSettings { Width = Width, Height = Height, LeftWidth = DockedPanelWidth("rename"), RightWidth = DockedPanelWidth("list"), Folders = Tabs.Select(t => t.Context.Root).ToList(), Selected = Tabs.Where(t => t.SelectedPath != null).ToDictionary(t => t.Context.Root, t => t.SelectedPath!), Thumbnails = _thumbnails });
             UpdatePackage.StartHelper(dialog.Prepared);
             _busy = false;
             Close();

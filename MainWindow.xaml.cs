@@ -299,7 +299,7 @@ public partial class MainWindow : Window
         }
         _closing = true; _folderScan?.Cancel(); _loadCancellation?.Cancel(); _thumbnailCancellation?.Cancel(); _watcher?.Dispose();
         foreach (var w in _docks.Values.ToArray()) w.Close();
-        try { SettingsStore.Save(new SavedSettings { Width = RestoreBounds.Width > 0 ? RestoreBounds.Width : Width, Height = RestoreBounds.Height > 0 ? RestoreBounds.Height : Height, LeftWidth = LeftColumn.ActualWidth, RightWidth = RightColumn.ActualWidth, Folders = Tabs.Select(t => t.Context.Root).ToList(), Selected = Tabs.Where(t => t.SelectedPath != null).ToDictionary(t => t.Context.Root, t => t.SelectedPath!), Thumbnails = _thumbnails }); } catch { }
+        try { SettingsStore.Save(new SavedSettings { Width = RestoreBounds.Width > 0 ? RestoreBounds.Width : Width, Height = RestoreBounds.Height > 0 ? RestoreBounds.Height : Height, LeftWidth = DockedPanelWidth("rename"), RightWidth = DockedPanelWidth("list"), Folders = Tabs.Select(t => t.Context.Root).ToList(), Selected = Tabs.Where(t => t.SelectedPath != null).ToDictionary(t => t.Context.Root, t => t.SelectedPath!), Thumbnails = _thumbnails }); } catch { }
         foreach (var tab in Tabs) tab.Dispose();
     }
     private void DetachLeft_Click(object s, RoutedEventArgs e) => ToggleDock("rename", LeftHost, "리네임", 360);
@@ -313,12 +313,22 @@ public partial class MainWindow : Window
         host.Content = null;
         var window = new PanelWindow(title, content, width) { Owner = this };
         _docks[key] = window;
-        var restore = new Button { Content = title + " 복귀", VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
-        restore.Click += (_, _) => window.Close(); host.Content = restore;
-        window.Closed += (_, _) => { window.ReleaseContent(); host.Content = content; _docks.Remove(key); };
+        if (key is "rename" or "list") SetSideDockLayout(key, true);
+        else
+        {
+            var restore = new Button { Content = title + " 복귀", VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
+            restore.Click += (_, _) => window.Close(); host.Content = restore;
+        }
+        window.Closed += (_, _) =>
+        {
+            window.ReleaseContent(); host.Content = content; _docks.Remove(key);
+            if (key is "rename" or "list") SetSideDockLayout(key, false);
+            QueueDockViewportRefresh();
+        };
         window.PreviewKeyDown += Window_KeyDown;
         window.PreviewKeyUp += Window_KeyUp;
-        window.Show();
+        if (TestMode) { window.WindowStartupLocation = WindowStartupLocation.Manual; window.Left = -16000; window.Top = -16000; }
+        window.Show(); QueueDockViewportRefresh();
     }
     private void ResetLayout_Click(object s, RoutedEventArgs e) { if (_busy || _loading) return; foreach (var w in _docks.Values.ToArray()) w.Close(); LeftColumn.Width = new GridLength(316); RightColumn.Width = new GridLength(288); Fit(); }
 

@@ -93,12 +93,12 @@
      </DockPanel>
     </Border>
    </ContentControl>
-   <GridSplitter Grid.Column="1" Width="8" HorizontalAlignment="Stretch" Background="Transparent" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" ShowsPreview="True"/>
+   <GridSplitter x:Name="LeftSplitter" Grid.Column="1" Width="8" HorizontalAlignment="Stretch" Background="Transparent" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" ShowsPreview="True"/>
    <ContentControl x:Name="ImageHost" Grid.Column="2">
     <Border x:Name="ImagePanel" Background="{DynamicResource PanelBg}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="7">
      <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
       <StackPanel Margin="10,5,10,4">
-       <DockPanel><Button DockPanel.Dock="Right" Content="↗" Click="DetachImage_Click" Style="{StaticResource QuietButton}" ToolTip="이미지 분리"/><Border DockPanel.Dock="Left" Background="{DynamicResource HeaderBg}" CornerRadius="4" Padding="8,5" Margin="0,0,9,0"><TextBlock x:Name="ImagePositionText" Text="0 / 0" FontWeight="Bold" Foreground="{DynamicResource AccentDark}"/></Border><TextBlock x:Name="SelectedFileText" Text="신청서 이미지" FontSize="14" FontWeight="Bold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/></DockPanel>
+       <DockPanel><Button DockPanel.Dock="Right" Content="↗" Click="DetachImage_Click" Style="{StaticResource QuietButton}" ToolTip="이미지 분리"/><Button x:Name="RestoreListPanelButton" DockPanel.Dock="Right" Content="목록 복귀" Click="RestoreListPanel_Click" Visibility="Collapsed" Style="{StaticResource QuietButton}" ToolTip="분리된 신청서 목록을 원래 너비로 되돌립니다."/><Button x:Name="RestoreRenamePanelButton" DockPanel.Dock="Right" Content="리네임 복귀" Click="RestoreRenamePanel_Click" Visibility="Collapsed" Style="{StaticResource QuietButton}" ToolTip="분리된 리네임 패널을 원래 너비로 되돌립니다."/><Border DockPanel.Dock="Left" Background="{DynamicResource HeaderBg}" CornerRadius="4" Padding="8,5" Margin="0,0,9,0"><TextBlock x:Name="ImagePositionText" Text="0 / 0" FontWeight="Bold" Foreground="{DynamicResource AccentDark}"/></Border><TextBlock x:Name="SelectedFileText" Text="신청서 이미지" FontSize="14" FontWeight="Bold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/></DockPanel>
        <DockPanel Margin="0,7,0,0"><StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
          <Button Content="−" Width="30" Padding="0" Click="ZoomOut_Click" Style="{StaticResource QuietButton}"/><TextBlock x:Name="ZoomText" Text="100%" Width="48" TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold"/><Button Content="+" Width="30" Padding="0" Click="ZoomIn_Click" Style="{StaticResource QuietButton}"/>
          <Button Content="맞춤" Click="Fit_Click" Style="{StaticResource QuietButton}" Margin="6,0,2,0"/><Button Content="↶" Click="RotateLeft_Click" Style="{StaticResource QuietButton}" ToolTip="왼쪽 90도 원본 회전"/><Button Content="↷" Click="RotateRight_Click" Style="{StaticResource QuietButton}" ToolTip="오른쪽 90도 원본 회전"/>
@@ -123,7 +123,7 @@
      </Grid>
     </Border>
    </ContentControl>
-   <GridSplitter Grid.Column="3" Width="8" HorizontalAlignment="Stretch" Background="Transparent" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" ShowsPreview="True"/>
+   <GridSplitter x:Name="RightSplitter" Grid.Column="3" Width="8" HorizontalAlignment="Stretch" Background="Transparent" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" ShowsPreview="True"/>
    <ContentControl x:Name="RightHost" Grid.Column="4">
     <Border x:Name="RightPanel" Background="{DynamicResource PanelBg}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="7">
      <DockPanel>
@@ -144,7 +144,7 @@
   </Grid>
   <StackPanel Grid.Row="3" Margin="10,4,10,4">
    <DockPanel x:Name="CompressionStatus" Visibility="Collapsed" Margin="0,0,0,6"><Button DockPanel.Dock="Right" Content="압축 중단" Click="CancelCompression_Click" Style="{StaticResource SmallButton}"/><ProgressBar x:Name="CompressionProgress" Height="5" VerticalAlignment="Center" Margin="0,0,10,0"/></DockPanel>
-   <DockPanel><TextBlock DockPanel.Dock="Right" x:Name="VersionText" Text="0.6.0" FontSize="10" Foreground="{DynamicResource MutedTextBrush}"/><TextBlock x:Name="StatusText" Text="준비 · 폴더를 선택하세요" FontSize="11" TextWrapping="Wrap" MinHeight="16" MaxHeight="32"/></DockPanel>
+   <DockPanel><TextBlock DockPanel.Dock="Right" x:Name="VersionText" Text="0.6.1" FontSize="10" Foreground="{DynamicResource MutedTextBrush}"/><TextBlock x:Name="StatusText" Text="준비 · 폴더를 선택하세요" FontSize="11" TextWrapping="Wrap" MinHeight="16" MaxHeight="32"/></DockPanel>
    <Expander x:Name="WorkLogExpander" Header="작업 기록" FontSize="10" Margin="0,3,0,0"><TextBox x:Name="LogBox" IsReadOnly="True" Height="90" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" FontSize="11"/></Expander>
   </StackPanel>
  </Grid>
