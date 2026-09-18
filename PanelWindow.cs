@@ -11,7 +11,7 @@ public sealed class PanelWindow : Window
     public PanelWindow(string title, UIElement content, double width)
     {
         ThemeManager.BindWindow(this, "PanelBg"); FontFamily = new FontFamily("Pretendard, Malgun Gothic, Segoe UI"); FontSize = 12;
-        Title = "보람 RMS Lite · " + title; Width = width; Height = 760;
+        Title = "보람 RMS Lite · " + title; Width = width; Height = Math.Min(760, SystemParameters.WorkArea.Height - 30);
         MinWidth = Math.Min(width, 320); MinHeight = 160;
         WindowStyle = WindowStyle.SingleBorderWindow;
         ResizeMode = ResizeMode.CanResizeWithGrip; ShowInTaskbar = false;
@@ -26,6 +26,7 @@ public sealed class PanelWindow : Window
         var top = new CheckBox { Content = "항상 위", Margin = new Thickness(12,6,0,6), VerticalAlignment = VerticalAlignment.Center };
         header.Children.Add(top); DockPanel.SetDock(header, Dock.Top); root.Children.Add(header);
         _host = new ContentControl { Content = content }; root.Children.Add(_host); Content = root;
+        InterfaceScale.Bind(root);
         top.Checked += (_, _) => Topmost = true; top.Unchecked += (_, _) => Topmost = false;
         close.Click += (_, _) => Close();
         small.Click += (_, _) =>

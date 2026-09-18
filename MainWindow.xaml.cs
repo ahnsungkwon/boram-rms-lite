@@ -42,6 +42,7 @@ public partial class MainWindow : Window
         ThemeManager.EnsureLoaded();
         InitializeComponent();
         _previousSettings = SettingsStore.Load();
+        InitializeDisplay();
         Width = Math.Clamp(_previousSettings.Width, MinWidth, Math.Max(MinWidth, SystemParameters.WorkArea.Width));
         Height = Math.Clamp(_previousSettings.Height, MinHeight, Math.Max(MinHeight, SystemParameters.WorkArea.Height));
         LeftColumn.Width = new GridLength(Math.Clamp(_previousSettings.LeftWidth, 270, 480));
@@ -82,25 +83,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex) { Error(ex); }
     }
-    private async void OpenFolder_Click(object sender, RoutedEventArgs e)
-    {
-        if (_busy) return;
-        var dlg = new OpenFolderDialog { Title = "강연회 폴더 / 신청서 [원본] / 이미지 폴더 선택" };
-        if (dlg.ShowDialog(this) != true) return;
-        var root = dlg.FolderName;
-        try
-        {
-            var children = Directory.EnumerateDirectories(root).Where(d => Directory.Exists(Path.Combine(d,"신청서","[원본]"))).ToList();
-            if (children.Count > 1)
-            {
-                if (MessageBox.Show(this, $"하위 강연회 {children.Count}개를 각각 탭으로 열까요?", "여러 폴더", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes) return;
-                foreach (var dir in children) await OpenFolderAsync(dir);
-            }
-            else if (children.Count == 1 && !Directory.Exists(Path.Combine(root,"신청서","[원본]"))) await OpenFolderAsync(children[0]);
-            else await OpenFolderAsync(root);
-        }
-        catch (Exception ex) { Error(ex); }
-    }
+    private async void OpenFolder_Click(object sender, RoutedEventArgs e) => await BrowseFoldersAsync();
     private async void WorkTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_initializing || _selecting || e.Source != WorkTabs) return;
@@ -258,6 +241,7 @@ public partial class MainWindow : Window
     private void UpdateSummary()
     {
         if (_initializing) return;
+        SyncFolderSelector();
         StatusSummary.Text = $"전체 {AllItems.Count} / 표시 {ImageList.Items.Count}";
         LocalSummary.Text = $"CMS {AllItems.Count(i => !i.Card)} · 카드 {AllItems.Count(i => i.Card)} · 보완 {AllItems.Count(i => i.Status.Contains("보완"))} · 취소 {AllItems.Count(i => i.Status.Contains("취소"))}";
         var index = ImageList.SelectedIndex + 1;
@@ -313,7 +297,7 @@ public partial class MainWindow : Window
             if (await TrySaveCurrentAsync()) { _allowClose = true; _ = Dispatcher.BeginInvoke(new Action(Close)); }
             return;
         }
-        _closing = true; _loadCancellation?.Cancel(); _thumbnailCancellation?.Cancel(); _watcher?.Dispose();
+        _closing = true; _folderScan?.Cancel(); _loadCancellation?.Cancel(); _thumbnailCancellation?.Cancel(); _watcher?.Dispose();
         foreach (var w in _docks.Values.ToArray()) w.Close();
         try { SettingsStore.Save(new SavedSettings { Width = RestoreBounds.Width > 0 ? RestoreBounds.Width : Width, Height = RestoreBounds.Height > 0 ? RestoreBounds.Height : Height, LeftWidth = LeftColumn.ActualWidth, RightWidth = RightColumn.ActualWidth, Folders = Tabs.Select(t => t.Context.Root).ToList(), Selected = Tabs.Where(t => t.SelectedPath != null).ToDictionary(t => t.Context.Root, t => t.SelectedPath!), Thumbnails = _thumbnails }); } catch { }
         foreach (var tab in Tabs) tab.Dispose();

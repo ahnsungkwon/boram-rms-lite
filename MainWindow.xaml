@@ -7,7 +7,7 @@
  PreviewKeyDown="Window_KeyDown" Closing="Window_Closing">
  <Window.Resources>
   <DataTemplate x:Key="RowTemplate">
-   <Grid MinHeight="30" ToolTip="{Binding RelativePath}">
+   <Grid MinHeight="24" ToolTip="{Binding RelativePath}">
     <Grid.ColumnDefinitions><ColumnDefinition Width="3"/><ColumnDefinition Width="27"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
     <Border Background="{Binding QuotaBrush}" CornerRadius="1" Margin="0,5"/>
     <TextBlock Grid.Column="1" Text="{Binding Index}" Foreground="{DynamicResource MutedTextBrush}" FontSize="10" VerticalAlignment="Center" HorizontalAlignment="Center"/>
@@ -16,15 +16,15 @@
    </Grid>
   </DataTemplate>
   <DataTemplate x:Key="ThumbnailTemplate">
-   <Grid MinHeight="84" ToolTip="{Binding RelativePath}"><Grid.ColumnDefinitions><ColumnDefinition Width="62"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-    <Border Background="{DynamicResource CanvasBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="3" Padding="3"><Image Source="{Binding Thumbnail}" Width="52" Height="72" Stretch="Uniform"/></Border>
+   <Grid MinHeight="64" ToolTip="{Binding RelativePath}"><Grid.ColumnDefinitions><ColumnDefinition Width="48"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+    <Border Background="{DynamicResource CanvasBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="3" Padding="3"><Image Source="{Binding Thumbnail}" Width="38" Height="54" Stretch="Uniform"/></Border>
     <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0"><TextBlock Text="{Binding FileName}" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Text="{Binding StatusLabel}" Foreground="{Binding StatusForeground}" FontSize="11" Margin="0,5,0,0"/></StackPanel>
    </Grid>
   </DataTemplate>
  </Window.Resources>
  <Grid x:Name="AppLayout" Background="{DynamicResource AppBg}">
   <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-  <Border x:Name="AppHeader" Background="{DynamicResource HeaderBg}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1" Padding="18,10">
+  <Border x:Name="AppHeader" Background="{DynamicResource HeaderBg}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1" Padding="14,6">
    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
      <Image x:Name="BrandLogo" Source="{DynamicResource RmsIcon}" Width="34" Height="34" Margin="0,0,10,0" RenderOptions.BitmapScalingMode="HighQuality" AutomationProperties.Name="보람 RMS Lite 아이콘"/>
@@ -40,13 +40,15 @@
     </StackPanel>
    </Grid>
   </Border>
-  <Grid Grid.Row="1" Margin="12,8,12,8">
+  <Grid Grid.Row="1" Margin="10,4,10,4">
    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
    <ListBox x:Name="WorkTabs" SelectionChanged="WorkTabs_SelectionChanged" ItemContainerStyle="{StaticResource WorkTabItem}" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled">
     <ListBox.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ListBox.ItemsPanel>
     <ListBox.ItemTemplate><DataTemplate><DockPanel><Button DockPanel.Dock="Right" Content="×" Tag="{Binding}" Click="CloseTab_Click" Style="{StaticResource QuietButton}" Margin="8,0,0,0" MinHeight="22" Padding="4,0" ToolTip="탭 닫기 · 파일은 유지"/><TextBlock Text="{Binding Title}" FontWeight="SemiBold" MaxWidth="230" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/></DockPanel></DataTemplate></ListBox.ItemTemplate>
    </ListBox>
    <StackPanel Grid.Column="1" Orientation="Horizontal">
+    <TextBlock Text="화면 배율" FontSize="11" VerticalAlignment="Center" Margin="0,0,6,0"/>
+    <ComboBox x:Name="UiScaleComboBox" Width="76" DisplayMemberPath="Label" SelectionChanged="UiScale_Changed" Margin="0,0,10,0" ToolTip="버튼·글자·간격을 80~100%로 조절합니다. 이미지 확대와 다릅니다." AutomationProperties.Name="인터페이스 화면 배율"/>
     <Button x:Name="ThemeButton" Click="ThemeButton_Click" MinWidth="128" Margin="0,0,10,0" ToolTip="녹색 · 블루 · 보라 · 핑크 / 즉시 적용 · 다음 실행에도 유지" AutomationProperties.Name="색상 테마 선택">
      <StackPanel Orientation="Horizontal"><Border Width="12" Height="12" CornerRadius="3" Background="{DynamicResource AccentBrush}" Margin="0,0,7,0"/><TextBlock x:Name="ThemeLabel" Text="테마 · 녹색"/><TextBlock Text="▾" Margin="8,0,0,0"/></StackPanel>
     </Button>
@@ -58,34 +60,34 @@
    <ContentControl x:Name="LeftHost">
     <Border x:Name="LeftPanel" Background="{DynamicResource PanelBg}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="7">
      <DockPanel>
-      <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1" Padding="14,9"><DockPanel><Button DockPanel.Dock="Right" Content="↗" Click="DetachLeft_Click" Style="{StaticResource QuietButton}" ToolTip="리네임 분리"/><TextBlock Text="리네임" Foreground="{DynamicResource AccentDark}" FontSize="15" FontWeight="Bold" VerticalAlignment="Center"/></DockPanel></Border>
-      <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,1,0,0" Background="{DynamicResource PanelFooterBg}" Padding="14,10">
+      <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1" Padding="12,4"><DockPanel><Button DockPanel.Dock="Right" Content="↗" Click="DetachLeft_Click" Style="{StaticResource QuietButton}" ToolTip="리네임 분리"/><TextBlock Text="리네임" Foreground="{DynamicResource AccentDark}" FontSize="15" FontWeight="Bold" VerticalAlignment="Center"/></DockPanel></Border>
+      <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,1,0,0" Background="{DynamicResource PanelFooterBg}" Padding="10,6">
        <StackPanel><Button x:Name="CompressOriginalsButton" Content="300KB 미만으로 줄이기" Click="CompressOriginals_Click" Margin="0,0,0,5"/>
         <TextBlock Text="현재 표시 목록 · 기존 파일에 바로 저장" Style="{StaticResource Hint}" TextAlignment="Center"/>
         <Button x:Name="RecycleSelectedButton" Content="선택 파일 휴지통 이동" Click="Recycle_Click" Style="{StaticResource QuietButton}" Foreground="{DynamicResource ErrorBrush}" Margin="0,5,0,0"/>
        </StackPanel>
       </Border>
-      <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-       <StackPanel Margin="14,12">
-        <TextBlock x:Name="CurrentFileText" Text="선택한 이미지가 없습니다" Foreground="{DynamicResource MutedTextBrush}" FontSize="11" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" Margin="0,0,0,10"/>
+      <ScrollViewer x:Name="RenameScroller" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+       <StackPanel x:Name="RenameBody" Margin="12,6">
+        <TextBlock x:Name="CurrentFileText" Text="선택한 이미지가 없습니다" Foreground="{DynamicResource MutedTextBrush}" FontSize="11" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" Margin="0,0,0,4"/>
         <TextBlock Text="구좌수 + 이름" Style="{StaticResource SectionTitle}"/>
         <TextBox x:Name="CombinedTextBox" MinHeight="62" Padding="12,9" VerticalContentAlignment="Center" TextWrapping="NoWrap" FontSize="24" FontWeight="Bold" CharacterCasing="Upper" TextChanged="Rename_TextChanged" BorderBrush="{DynamicResource FocusBrush}" AutomationProperties.Name="구좌수와 이름 입력"/>
-        <TextBlock x:Name="NewFileText" Text="—" Foreground="{DynamicResource AccentBrush}" FontSize="11" TextTrimming="CharacterEllipsis" Margin="0,6,0,8"/>
-        <Button x:Name="SaveNextButton" Click="SaveNext_Click" Style="{StaticResource PrimaryButton}" Height="36" Margin="0,0,0,5"><DockPanel><Border DockPanel.Dock="Right" Background="#20FFFFFF" CornerRadius="3" Padding="5,1" Margin="12,0,0,0"><TextBlock Text="Space" Foreground="White" FontSize="10"/></Border><TextBlock Text="저장하고 다음" Foreground="White"/></DockPanel></Button>
+        <TextBlock x:Name="NewFileText" Text="—" Foreground="{DynamicResource AccentBrush}" FontSize="11" TextTrimming="CharacterEllipsis" Margin="0,3,0,5"/>
+        <Button x:Name="SaveNextButton" Click="SaveNext_Click" Style="{StaticResource PrimaryButton}" Height="32" Margin="0,0,0,4"><DockPanel><Border DockPanel.Dock="Right" Background="#20FFFFFF" CornerRadius="3" Padding="5,1" Margin="12,0,0,0"><TextBlock Text="Space" Foreground="White" FontSize="10"/></Border><TextBlock Text="저장하고 다음" Foreground="White"/></DockPanel></Button>
         <UniformGrid Columns="2"><Button Content="저장만" Click="SaveOnly_Click" Margin="0,0,3,0"/><Button x:Name="SavePreviousButton" Content="저장하고 이전" Click="PreviousImage_Click" Margin="3,0,0,0" ToolTip="Ctrl+Space · 이름이 비어 있으면 기존 파일명 유지 후 이전 이미지"/></UniformGrid>
-        <Border Height="1" Background="{DynamicResource LineBrush}" Margin="0,15,0,12"/>
-        <TextBlock x:Name="SaveHint" Text="Space 다음 · Ctrl+Space 이전" Style="{StaticResource Hint}" TextWrapping="Wrap" MinHeight="32" Margin="0,0,0,5"/>
-        <Button x:Name="DiscardPendingButton" Content="입력 원래대로" Click="DiscardPending_Click" MinHeight="30" Margin="0,0,0,8" IsEnabled="False" ToolTipService.ShowOnDisabled="True" ToolTip="아직 저장하지 않은 입력만 저장된 값으로 돌립니다. 이미 자동 저장된 체크는 유지합니다. 빈 이름은 이 버튼 없이도 이동할 수 있습니다."/>
-        <TextBlock x:Name="AutoSaveStatusText" Text="체크·해제 즉시 저장" Foreground="{DynamicResource AccentBrush}" FontSize="11" Margin="0,0,0,8" TextWrapping="Wrap"/>
+        <Border Height="1" Background="{DynamicResource LineBrush}" Margin="0,7,0,5"/>
+        <TextBlock x:Name="SaveHint" Text="Space 다음 · Ctrl+Space 이전" Style="{StaticResource Hint}" TextWrapping="Wrap" MinHeight="16" Margin="0,0,0,3"/>
+        <Button x:Name="DiscardPendingButton" Content="입력 원래대로" Click="DiscardPending_Click" MinHeight="30" Margin="0,0,0,4" IsEnabled="False" ToolTipService.ShowOnDisabled="True" ToolTip="아직 저장하지 않은 입력만 저장된 값으로 돌립니다. 이미 자동 저장된 체크는 유지합니다. 빈 이름은 이 버튼 없이도 이동할 수 있습니다."/>
+        <TextBlock x:Name="AutoSaveStatusText" Text="체크·해제 즉시 저장" Foreground="{DynamicResource AccentBrush}" FontSize="11" Margin="0,0,0,4" TextWrapping="Wrap"/>
         <Button x:Name="SaveStateButton" Content="상태 다시 저장" Click="RetryState_Click" Visibility="Collapsed" Margin="0,0,0,8" Background="{DynamicResource HeaderBg}" Foreground="{DynamicResource AccentDark}"/>
         <TextBlock Text="보완 사유" Style="{StaticResource SectionTitle}"/>
-        <UniformGrid x:Name="RepairReasons" Columns="2" Margin="0,0,0,6"><CheckBox Content="화산미기입"/><CheckBox Content="계약일보완"/><CheckBox Content="가입동기보완"/><CheckBox Content="이체희망일보완"/><CheckBox Content="남녀구분미체크"/><CheckBox Content="실명보완"/><CheckBox Content="법인서류보완"/><CheckBox Content="외국인서류보완"/><CheckBox Content="연락처보완"/><CheckBox Content="주소보완"/><CheckBox Content="타인계좌"/><CheckBox Content="계좌보완(CMS)"/></UniformGrid>
+        <UniformGrid x:Name="RepairReasons" Columns="2" Margin="0,0,0,3"><CheckBox Content="화산미기입"/><CheckBox Content="계약일보완"/><CheckBox Content="가입동기보완"/><CheckBox Content="이체희망일보완"/><CheckBox Content="남녀구분미체크"/><CheckBox Content="실명보완"/><CheckBox Content="법인서류보완"/><CheckBox Content="외국인서류보완"/><CheckBox Content="연락처보완"/><CheckBox Content="주소보완"/><CheckBox Content="타인계좌"/><CheckBox Content="계좌보완(CMS)"/></UniformGrid>
         <TextBox x:Name="RepairMemo" ToolTip="추가 보완 메모" AutomationProperties.Name="보완 메모"/>
-        <TextBlock Text="기타 상태" Style="{StaticResource SectionTitle}" Margin="0,13,0,6"/>
+        <TextBlock Text="기타 상태" Style="{StaticResource SectionTitle}" Margin="0,7,0,3"/>
         <UniformGrid Columns="2"><CheckBox x:Name="CardCheck" Content="카드"/><CheckBox x:Name="WeekendCheck" Content="주말미등록"/><CheckBox x:Name="AdditionalCheck" Content="추가"/><CheckBox x:Name="PreCancelCheck" Content="입력전취소"/><CheckBox x:Name="PostCancelCheck" Content="입력후취소"/><CheckBox x:Name="MistakeCheck" Content="오기입"/><CheckBox x:Name="MinorCheck" Content="미성년자"/><CheckBox x:Name="WrongCheck" Content="오등록"/></UniformGrid>
-        <Grid Margin="0,7,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="110"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="35"/><RowDefinition Height="35"/></Grid.RowDefinitions><CheckBox x:Name="PreChangeCheck" Content="입력전변경"/><TextBox Grid.Column="1" x:Name="PreQuota" ToolTip="변경할 구좌수" Margin="0,0,0,3"/><CheckBox Grid.Row="1" x:Name="PostChangeCheck" Content="입력후변경"/><TextBox Grid.Row="1" Grid.Column="1" x:Name="PostQuota" ToolTip="변경된 구좌수 · 파일명 유지"/></Grid>
-        <TextBox x:Name="StatusMemo" Margin="0,6,0,0" ToolTip="상태 메모" AutomationProperties.Name="상태 메모"/>
-        <Button x:Name="ClearAllStateButton" Content="상태 모두 해제" Click="ClearAllStatus_Click" Margin="0,8,0,0"/>
+        <Grid Margin="0,4,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="105"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="30"/><RowDefinition Height="30"/></Grid.RowDefinitions><CheckBox x:Name="PreChangeCheck" Content="입력전변경"/><TextBox Grid.Column="1" x:Name="PreQuota" ToolTip="변경할 구좌수" Margin="0,0,0,3"/><CheckBox Grid.Row="1" x:Name="PostChangeCheck" Content="입력후변경"/><TextBox Grid.Row="1" Grid.Column="1" x:Name="PostQuota" ToolTip="변경된 구좌수 · 파일명 유지"/></Grid>
+        <TextBox x:Name="StatusMemo" Margin="0,4,0,0" ToolTip="상태 메모" AutomationProperties.Name="상태 메모"/>
+        <Button x:Name="ClearAllStateButton" Content="상태 모두 해제" Click="ClearAllStatus_Click" Margin="0,4,0,0"/>
        </StackPanel>
       </ScrollViewer>
      </DockPanel>
@@ -95,7 +97,7 @@
    <ContentControl x:Name="ImageHost" Grid.Column="2">
     <Border x:Name="ImagePanel" Background="{DynamicResource PanelBg}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="7">
      <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-      <StackPanel Margin="12,9,12,8">
+      <StackPanel Margin="10,5,10,4">
        <DockPanel><Button DockPanel.Dock="Right" Content="↗" Click="DetachImage_Click" Style="{StaticResource QuietButton}" ToolTip="이미지 분리"/><Border DockPanel.Dock="Left" Background="{DynamicResource HeaderBg}" CornerRadius="4" Padding="8,5" Margin="0,0,9,0"><TextBlock x:Name="ImagePositionText" Text="0 / 0" FontWeight="Bold" Foreground="{DynamicResource AccentDark}"/></Border><TextBlock x:Name="SelectedFileText" Text="신청서 이미지" FontSize="14" FontWeight="Bold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/></DockPanel>
        <DockPanel Margin="0,7,0,0"><StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
          <Button Content="−" Width="30" Padding="0" Click="ZoomOut_Click" Style="{StaticResource QuietButton}"/><TextBlock x:Name="ZoomText" Text="100%" Width="48" TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold"/><Button Content="+" Width="30" Padding="0" Click="ZoomIn_Click" Style="{StaticResource QuietButton}"/>
@@ -117,7 +119,7 @@
        </Border>
        <Button x:Name="NextImageRail" Grid.Column="2" Click="NextImage_Click" Style="{StaticResource ImageNavButton}" ToolTip="클릭하면 다음 이미지 · 확대와 위치 유지" AutomationProperties.Name="다음 이미지"><Path Data="M3,0 L12,10 L3,20" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.7" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Button>
       </Grid>
-      <StackPanel Grid.Row="2" Margin="12,8,12,10"><TextBlock x:Name="ImageDetails" Text="휠 확대 · 드래그 이동 · 좌우 영역 클릭으로 이미지 이동" Style="{StaticResource Hint}"/><TextBlock x:Name="ProgressSummary" Text="선택 위치 0 / 0" Style="{StaticResource Hint}" Margin="0,5,0,0"/><UniformGrid x:Name="QuotaProgress" Columns="6" Margin="0,5,0,0"/></StackPanel>
+      <StackPanel Grid.Row="2" Margin="10,4,10,5"><TextBlock x:Name="ImageDetails" Text="휠 확대 · 드래그 이동 · 좌우 영역 클릭으로 이미지 이동" Style="{StaticResource Hint}"/><TextBlock x:Name="ProgressSummary" Text="선택 위치 0 / 0" Style="{StaticResource Hint}" Margin="0,5,0,0"/><UniformGrid x:Name="QuotaProgress" Columns="6" Margin="0,5,0,0"/></StackPanel>
      </Grid>
     </Border>
    </ContentControl>
@@ -125,23 +127,24 @@
    <ContentControl x:Name="RightHost" Grid.Column="4">
     <Border x:Name="RightPanel" Background="{DynamicResource PanelBg}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="7">
      <DockPanel>
-      <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1" Padding="12,9"><DockPanel><Button Content="↗" Click="DetachRight_Click" DockPanel.Dock="Right" Style="{StaticResource QuietButton}" ToolTip="목록 분리"/><Button x:Name="ThumbnailsButton" Content="▦" Click="Thumbnails_Click" DockPanel.Dock="Right" Style="{StaticResource QuietButton}" ToolTip="목록/썸네일"/><TextBlock Text="신청서 목록" Foreground="{DynamicResource AccentDark}" FontSize="15" FontWeight="Bold" VerticalAlignment="Center"/></DockPanel></Border>
-      <StackPanel DockPanel.Dock="Top" Margin="12,10,12,6">
-       <TextBlock x:Name="OriginalDirText" Text="선택된 폴더 없음" FontSize="10" Foreground="{DynamicResource MutedTextBrush}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" Margin="0,0,0,9"/>
+      <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1" Padding="12,4"><DockPanel><Button Content="↗" Click="DetachRight_Click" DockPanel.Dock="Right" Style="{StaticResource QuietButton}" ToolTip="목록 분리"/><Button x:Name="ThumbnailsButton" Content="▦" Click="Thumbnails_Click" DockPanel.Dock="Right" Style="{StaticResource QuietButton}" ToolTip="목록/썸네일"/><TextBlock Text="신청서 목록" Foreground="{DynamicResource AccentDark}" FontSize="15" FontWeight="Bold" VerticalAlignment="Center"/></DockPanel></Border>
+      <StackPanel DockPanel.Dock="Top" Margin="10,5,10,4">
+       <DockPanel Margin="0,0,0,4"><TextBlock DockPanel.Dock="Left" Text="작업 폴더" FontSize="10" Margin="0,0,6,0" VerticalAlignment="Center"/><ComboBox x:Name="FolderSelector" DisplayMemberPath="Title" SelectionChanged="FolderSelector_Changed" MaxDropDownHeight="300" AutomationProperties.Name="열린 신청서 폴더 선택"/></DockPanel>
+       <TextBlock x:Name="OriginalDirText" Text="선택된 폴더 없음" FontSize="10" Foreground="{DynamicResource MutedTextBrush}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" Margin="0,0,0,4"/>
        <TextBox x:Name="SearchText" TextChanged="Search_Changed" ToolTip="이름·파일명·메모 검색" AutomationProperties.Name="신청서 검색"/>
        <Grid Margin="0,7,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><ComboBox x:Name="StatusFilter" SelectionChanged="Filter_Changed" ToolTip="상태 필터"/><ComboBox Grid.Column="2" x:Name="SortMode" SelectionChanged="Filter_Changed" ToolTip="정렬"><ComboBoxItem Content="작업 순서"/><ComboBoxItem Content="구좌 · 이름"/><ComboBoxItem Content="파일명"/></ComboBox><Button Grid.Column="3" Content="↺" Click="ClearFilter_Click" Style="{StaticResource QuietButton}" ToolTip="검색·필터 초기화"/></Grid>
-       <DockPanel Margin="0,12,0,0"><Button DockPanel.Dock="Right" Content="↻" Click="Refresh_Click" Style="{StaticResource QuietButton}" ToolTip="새로고침 · F5"/><TextBlock x:Name="StatusSummary" Text="전체 0 / 표시 0" FontWeight="SemiBold" VerticalAlignment="Center"/></DockPanel>
-       <TextBlock x:Name="LocalSummary" Text="CMS 0 · 카드 0 · 보완 0" Style="{StaticResource Hint}" Margin="0,0,0,7"/>
+       <DockPanel Margin="0,5,0,0"><Button DockPanel.Dock="Right" Content="↻" Click="Refresh_Click" Style="{StaticResource QuietButton}" ToolTip="새로고침 · F5"/><TextBlock x:Name="StatusSummary" Text="전체 0 / 표시 0" FontWeight="SemiBold" VerticalAlignment="Center"/></DockPanel>
+       <TextBlock x:Name="LocalSummary" Text="CMS 0 · 카드 0 · 보완 0" Style="{StaticResource Hint}" Margin="0,0,0,3"/>
       </StackPanel>
-      <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,1,0,0" Padding="12,9"><StackPanel><DockPanel Margin="0,5,0,0"><Button DockPanel.Dock="Right" Content="폴더 열기" Click="OpenExplorer_Click" Style="{StaticResource QuietButton}"/><TextBlock Text="Ctrl / Shift 다중 선택" Style="{StaticResource Hint}" VerticalAlignment="Center"/></DockPanel></StackPanel></Border>
+      <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,1,0,0" Padding="10,4"><StackPanel><DockPanel><Button DockPanel.Dock="Right" Content="폴더 열기" Click="OpenExplorer_Click" Style="{StaticResource QuietButton}"/><TextBlock Text="Ctrl / Shift 다중 선택" Style="{StaticResource Hint}" VerticalAlignment="Center"/></DockPanel></StackPanel></Border>
       <ListBox x:Name="ImageList" Margin="6,0" SelectionMode="Extended" SelectionChanged="Images_SelectionChanged" ItemTemplate="{StaticResource RowTemplate}" ScrollViewer.VerticalScrollBarVisibility="Auto" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"/>
      </DockPanel>
     </Border>
    </ContentControl>
   </Grid>
-  <StackPanel Grid.Row="3" Margin="14,8,14,8">
+  <StackPanel Grid.Row="3" Margin="10,4,10,4">
    <DockPanel x:Name="CompressionStatus" Visibility="Collapsed" Margin="0,0,0,6"><Button DockPanel.Dock="Right" Content="압축 중단" Click="CancelCompression_Click" Style="{StaticResource SmallButton}"/><ProgressBar x:Name="CompressionProgress" Height="5" VerticalAlignment="Center" Margin="0,0,10,0"/></DockPanel>
-   <DockPanel><TextBlock DockPanel.Dock="Right" x:Name="VersionText" Text="0.5.0" FontSize="10" Foreground="{DynamicResource MutedTextBrush}"/><TextBlock x:Name="StatusText" Text="준비 · 폴더를 선택하세요" FontSize="11" TextWrapping="Wrap" Height="30"/></DockPanel>
+   <DockPanel><TextBlock DockPanel.Dock="Right" x:Name="VersionText" Text="0.6.0" FontSize="10" Foreground="{DynamicResource MutedTextBrush}"/><TextBlock x:Name="StatusText" Text="준비 · 폴더를 선택하세요" FontSize="11" TextWrapping="Wrap" MinHeight="16" MaxHeight="32"/></DockPanel>
    <Expander x:Name="WorkLogExpander" Header="작업 기록" FontSize="10" Margin="0,3,0,0"><TextBox x:Name="LogBox" IsReadOnly="True" Height="90" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" FontSize="11"/></Expander>
   </StackPanel>
  </Grid>

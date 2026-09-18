@@ -40,6 +40,7 @@ public sealed class UpdateWindow : Window
         bottom.Children.Add(new TextBlock { Text = "설치 시 Lite가 종료된 뒤 새 버전으로 다시 열립니다. 신청서 폴더와 사용자 설정은 교체하지 않습니다. 이전 앱 폴더는 백업으로 보관합니다.", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0,12,0,8), FontSize = 11 });
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
         _install.Style = (Style)FindResource("PrimaryButton"); buttons.Children.Add(_check); buttons.Children.Add(_install); buttons.Children.Add(_cancel); bottom.Children.Add(buttons); Grid.SetRow(bottom, 2); grid.Children.Add(bottom); Content = grid;
+        InterfaceScale.Bind(grid);
         _check.Click += async (_, _) => await CheckAsync(); _install.Click += async (_, _) => await InstallAsync();
         _cancel.Click += (_, _) => { if (_running) _cancelSource?.Cancel(); else Close(); };
         if (!testMode) Loaded += async (_, _) => await CheckAsync(); Closing += OnClosing;
