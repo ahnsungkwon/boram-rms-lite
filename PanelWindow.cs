@@ -10,14 +10,14 @@ public sealed class PanelWindow : Window
     private bool _widget;
     public PanelWindow(string title, UIElement content, double width)
     {
-        Foreground = (Brush)FindResource("TextBrush"); FontFamily = new FontFamily("Pretendard, Malgun Gothic, Segoe UI"); FontSize = 12;
-        Icon = AppBrand.Icon;
+        ThemeManager.BindWindow(this, "PanelBg"); FontFamily = new FontFamily("Pretendard, Malgun Gothic, Segoe UI"); FontSize = 12;
         Title = "보람 RMS Lite · " + title; Width = width; Height = 760;
         MinWidth = Math.Min(width, 320); MinHeight = 160;
-        WindowStyle = WindowStyle.SingleBorderWindow; Background = (Brush)FindResource("PanelBg");
+        WindowStyle = WindowStyle.SingleBorderWindow;
         ResizeMode = ResizeMode.CanResizeWithGrip; ShowInTaskbar = false;
         var root = new DockPanel();
-        var header = new DockPanel { Background = (Brush)FindResource("HeaderBg"), Margin = new Thickness(0,0,0,6) };
+        var header = new DockPanel { Margin = new Thickness(0,0,0,6) };
+        header.SetResourceReference(DockPanel.BackgroundProperty, "HeaderBg");
         var buttons = new StackPanel { Orientation = Orientation.Horizontal };
         DockPanel.SetDock(buttons, Dock.Right);
         var small = new Button { Content = "접기", Style = (Style)FindResource("QuietButton") };

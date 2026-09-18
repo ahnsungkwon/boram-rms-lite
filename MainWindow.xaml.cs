@@ -39,6 +39,7 @@ public partial class MainWindow : Window
     public MainWindow(bool testMode = false)
     {
         TestMode = testMode;
+        ThemeManager.EnsureLoaded();
         InitializeComponent();
         _previousSettings = SettingsStore.Load();
         Width = Math.Clamp(_previousSettings.Width, MinWidth, Math.Max(MinWidth, SystemParameters.WorkArea.Width));
@@ -52,14 +53,14 @@ public partial class MainWindow : Window
         _statusBoxes = new() { [WeekendCheck] = "주말미등록", [AdditionalCheck] = "추가", [PreCancelCheck] = "입력전 취소", [PostCancelCheck] = "입력후 취소", [MistakeCheck] = "오기입", [WrongCheck] = "오등록", [PreChangeCheck] = "입력전 변경", [PostChangeCheck] = "입력후 변경" };
         InitializeStatusAutosave();
         _initializing = false;
-        SetTemplate(); UpdateSummary(); InitializeNavigation(); InitializeUpdater(); UpdateDraftHint();
+        SetTemplate(); UpdateSummary(); InitializeNavigation(); InitializeUpdater(); UpdateDraftHint(); InitializeThemes();
     }
     private void Log(string text)
     {
-        StatusText.Foreground = (Brush)FindResource("TextBrush"); StatusText.Text = text; StatusText.ToolTip = text; LogBox.AppendText($"{DateTime.Now:HH:mm:ss}  {text}\n");
+        StatusText.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush"); StatusText.Text = text; StatusText.ToolTip = text; LogBox.AppendText($"{DateTime.Now:HH:mm:ss}  {text}\n");
         if (LogBox.Text.Length > 20000) LogBox.Text = LogBox.Text[^16000..]; LogBox.ScrollToEnd();
     }
-    private void Error(Exception ex) { Log("처리하지 못했습니다 · " + ex.Message); StatusText.Foreground = ImageItem.Brush("#AC4942"); StatusText.ToolTip = ex.Message; }
+    private void Error(Exception ex) { Log("처리하지 못했습니다 · " + ex.Message); StatusText.SetResourceReference(TextBlock.ForegroundProperty, "ErrorBrush"); StatusText.ToolTip = ex.Message; }
     private bool Writable()
     {
         if (_busy || _loading) { Log("현재 처리가 끝난 뒤 다시 시도하세요."); return false; }
