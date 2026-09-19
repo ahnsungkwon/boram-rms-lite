@@ -1,4 +1,4 @@
-"""Append verified first-install assets to the existing private app release.
+"""Append verified first-install assets to the existing public app release.
 Explicit publishing operation: adds assets only, never replaces or retags a release.
 """
 from __future__ import annotations
@@ -22,6 +22,7 @@ SOURCE_FILES = [
     'installer/publish_setup.py', 'installer/README.md',
     'MainWindow.DockLayout.cs', 'DockLayoutTests.cs', 'MainWindow.xaml', 'MainWindow.xaml.cs',
     'MainWindow.Update.cs', 'GuideWindow.cs', 'LiteWorkflowTests.cs', 'release.py',
+    'LICENSE', 'THIRD_PARTY_NOTICES.md', 'PUBLIC_SHARING.md',
 ]
 
 def digest(path: Path) -> str:
@@ -60,8 +61,8 @@ def main() -> None:
         raise RuntimeError('Publish from main only.')
     commit = run(['git', 'rev-parse', 'HEAD']).strip()
     repository = json.loads(run(['gh', 'repo', 'view', REPO, '--json', 'nameWithOwner,isPrivate,url']))
-    if repository['nameWithOwner'] != REPO or repository['isPrivate'] is not True:
-        raise RuntimeError('The intended private repository was not confirmed.')
+    if repository['nameWithOwner'] != REPO or repository['isPrivate'] is not False:
+        raise RuntimeError('The intended public repository was not confirmed.')
     if api(f'repos/{REPO}/commits/main')['sha'] != commit:
         raise RuntimeError('Installer source is not on remote main.')
     original = json.loads((APP_RELEASE / 'PUBLISH_RESULT.json').read_text('utf-8'))
@@ -117,7 +118,7 @@ def main() -> None:
         if path.name not in verified or not asset_ok(verified[path.name], path):
             raise RuntimeError('Uploaded installer asset failed verification: ' + path.name)
     result = {
-        'success': True, 'repository': REPO, 'private': True, 'tag': TAG,
+        'success': True, 'repository': REPO, 'private': repository['isPrivate'], 'tag': TAG,
         'release': after['html_url'], 'installerSourceCommit': commit,
         'appReleaseCommitUnchanged': release['target_commitish'],
         'originalAssetsUnchanged': True, 'assetDigestsVerified': True,

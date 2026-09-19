@@ -58,7 +58,7 @@ def build() -> None:
     covered_workflow = {item.get('Name', '').split(' ', 1)[0] for item in results}
     if len(results) < 137 or not required_workflow.issubset(covered_workflow) or not all(item.get('Passed') is True for item in results) or not summary.startswith(f'PASS {len(results)}\nFAIL 0'):
         raise SystemExit('Test failure: package will not be created.')
-    for name in ['README.md', 'README_KO.md', 'UPDATE_GUIDE.md', 'CHANGELOG.md', 'SIMPLE_WORKFLOW.md']:
+    for name in ['README.md', 'README_KO.md', 'UPDATE_GUIDE.md', 'CHANGELOG.md', 'SIMPLE_WORKFLOW.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'PUBLIC_SHARING.md']:
         shutil.copy2(ROOT / name, BUNDLE / name)
     for name, target in [('SUMMARY.txt', 'TEST_SUMMARY.txt'), ('main-preview.png', 'MAIN_PREVIEW.png'), ('update-preview.png', 'UPDATE_PREVIEW.png'), ('rename-input-preview.png', 'RENAME_INPUT_PREVIEW.png'), ('rms-icon-preview.png', 'RMS_ICON_PREVIEW.png'), ('autosave-preview.png', 'AUTOSAVE_PREVIEW.png'), ('blank-name-preview.png', 'BLANK_NAME_PREVIEW.png')] + [(f'theme-{name}.png', f'THEME_{name.upper()}.png') for name in ['green', 'blue', 'purple', 'pink']]:
         shutil.copy2(proof / name, BUNDLE / target)
@@ -93,8 +93,8 @@ def verify_local() -> dict:
 def publish() -> None:
     metadata = verify_local()
     repository = json.loads(run(['gh', 'repo', 'view', REPO, '--json', 'nameWithOwner,isPrivate,url'], capture=True))
-    if repository['nameWithOwner'] != REPO or not repository['isPrivate']:
-        raise SystemExit('Only the expected private repository may be published.')
+    if repository['nameWithOwner'] != REPO or repository['isPrivate'] is not False:
+        raise SystemExit('Only the expected public repository may be published.')
     if run(['git', 'status', '--porcelain'], capture=True).strip():
         raise SystemExit('Commit and push reviewed source changes before publishing.')
     if run(['git', 'branch', '--show-current'], capture=True).strip() != 'main':
@@ -123,7 +123,7 @@ def publish() -> None:
     data = json.loads(run(['gh', 'api', f'repos/{REPO}/releases/latest'], capture=True))
     if data['tag_name'] != tag or data['draft'] or data['prerelease']:
         raise SystemExit('Published release verification failed.')
-    write_new(OUT / 'PUBLISH_RESULT.json', {'repository': repository['url'], 'private': True, 'commit': commit, 'tag': tag, 'release': data['html_url'], 'published': data['published_at'], 'sha256': metadata['Sha256'], 'assetDigestsVerified': True})
+    write_new(OUT / 'PUBLISH_RESULT.json', {'repository': repository['url'], 'private': repository['isPrivate'], 'commit': commit, 'tag': tag, 'release': data['html_url'], 'published': data['published_at'], 'sha256': metadata['Sha256'], 'assetDigestsVerified': True})
     print(data['html_url'], flush=True)
 
 

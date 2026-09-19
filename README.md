@@ -1,5 +1,15 @@
 # 보람 RMS Lite
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+**공개 오픈소스 · MIT License · 무료/상업적 이용 가능**
+
+[최신 설치 파일·배포](https://github.com/ahnsungkwon/boram-rms-lite/releases/latest) · [0.6.1 설치 EXE](https://github.com/ahnsungkwon/boram-rms-lite/releases/download/v0.6.1/BoramRMS_Lite_0.6.1_Setup.exe) · [공유 안내](PUBLIC_SHARING.md)
+
+GitHub 계정이나 개인 토큰 없이 소스와 설치 파일을 받을 수 있습니다. 설치 파일을 직접 재배포할 때는 `LICENSE` 및 외부 구성요소 고지를 함께 보존하세요. 본 프로젝트 고유 코드·문서·배포본에 MIT를 적용하며, [외부 구성요소](THIRD_PARTY_NOTICES.md)의 원래 라이선스는 유지합니다.
+
+> 현재 배포 앱은 0.6.1입니다. 이번 공개·라이선스 변경은 임시파일 잠금 저장 오류를 수정한 새 앱 배포가 아닙니다. 해당 오류의 0.6.2 보완은 별도 검수 후 배포할 예정이며, 아직 완료됐다고 표시하지 않습니다.
+
 Windows x64 독립 신청서 작업 앱. 흰 작업 패널과 녹색·블루·보라·핑크 전환 테마, 폴더별 탭, 이미지 확인, 리네임, 상태·목록, 300KB 미만 직접 압축, GitHub 업데이트를 제공합니다. 기존 전체 RMS와 별도 실행 프로그램입니다.
 
 ## 현재 상태
@@ -48,7 +58,7 @@ HomePC: `C:\BoramRMS\boram-rms-lite\START_LITE.cmd`.
 
 정식 Release가 게시되면 앱의 `업데이트 확인 → 업데이트 설치`로 받습니다. 다른 PC는 해당 버전의 ZIP 전체를 새 전용 폴더에 풀어 `BoramRMS_Lite/BoramRms.Lite.exe`를 실행합니다. EXE만 복사하지 마세요. .NET 런타임이 포함됩니다. 앱 사용에 Codex·Python·API 키가 필요하지 않습니다.
 
-비공개 GitHub 업데이트 인증은 기존 GitHub CLI 로그인 또는 저장소 Contents 읽기 권한 토큰을 사용하며 토큰은 배포본에 넣지 않습니다.
+공개 Release 다운로드에는 개인 토큰이 필요하지 않습니다. 기존 0.6.1 앱에는 공개 전의 ‘비공개 저장소’ 안내가 남아 있을 수 있습니다. 토큰이 없어도 요청할 수 있으며, 만료된 저장 토큰으로 401 오류가 날 때는 `GitHub 인증 설정 → 저장 토큰 지우기`를 확인하세요. 토큰을 타인이나 배포본에 포함하지 마세요.
 
 ## 문서와 검수
 
@@ -64,4 +74,4 @@ python release.py build
 python release.py publish
 ```
 
-빌드는 새 버전 전용 폴더를 생성하며 기존 실행 파일을 덮어쓰지 않습니다. 시험에 실패하거나 필수 항목이 누락되면 배포 ZIP을 만들지 않습니다. 게시 도구는 비공개 저장소·원격 main·업로드 해시를 확인하며 기존 Release를 덮어쓰지 않습니다.
+빌드는 새 버전 전용 폴더를 생성하며 기존 실행 파일을 덮어쓰지 않습니다. 시험에 실패하거나 필수 항목이 누락되면 배포 ZIP을 만들지 않습니다. 게시 도구는 지정된 공개 저장소·원격 main·업로드 해시를 확인하며 기존 Release를 덮어쓰지 않습니다. 이후 새 빌드부터 `LICENSE`, `THIRD_PARTY_NOTICES.md`, `PUBLIC_SHARING.md`를 패키지에 포함합니다. 기존 0.6.1 ZIP·EXE는 바꿔치기하지 않고 라이선스·공유 안내를 Release의 별도 파일로 제공합니다.
