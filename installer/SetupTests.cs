@@ -93,8 +93,8 @@ namespace BoramRms.Setup
                 using(var process=Process.Start(psi)){Assert(process!=null,"앱 시작 실패"); Assert(process.WaitForExit(180000),"앱 시험 시간 초과");Assert(process.ExitCode==0,"앱 시험 실패");}
                 var latest=File.ReadAllText(Path.Combine(proof,"latest-run.txt")).Trim(); var summary=File.ReadAllText(Path.Combine(latest,"SUMMARY.txt"));
                 var expected=File.ReadAllText(Path.Combine(app,"TEST_SUMMARY.txt"));
-                Assert(summary.Split('\n').Take(2).SequenceEqual(expected.Split('\n').Take(2)) && summary.Split('\n')[1]=="FAIL 0" && summary.Contains("PASS K08"),"앱·패널 분리 회귀시험 실패");
-                appTests=int.Parse(summary.Split('\n')[0].Substring(5)); Assert(appTests>=137,"필수 앱 시험 누락");
+                Assert(summary.Split('\n').Take(2).SequenceEqual(expected.Split('\n').Take(2)) && summary.Split('\n')[1]=="FAIL 0" && summary.Contains("PASS K08") && summary.Contains("PASS L14"),"앱·패널 분리 회귀시험 실패");
+                appTests=int.Parse(summary.Split('\n')[0].Substring(5)); Assert(appTests>=151,"필수 앱·파일 잠금 시험 누락");
                 File.WriteAllText(Path.Combine(run,"APP_TEST_SUMMARY.txt"),summary);
             });
             check("S15 App에 임의 파일 추가 시 검사 거절", () => { var extra=Path.Combine(app,"추가자료.txt");File.WriteAllText(extra,"not a release file");Refused(()=>InstallCore.Validate(app)); });

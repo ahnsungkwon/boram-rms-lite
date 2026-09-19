@@ -283,7 +283,7 @@ public partial class MainWindow : Window
     {
         if (!Writable() || _editing == null || _active == null || !await TrySaveCurrentAsync()) return;
         var item = _editing; var ctx = _active.Context; _busy = true; _ignoreWatcherUntil = DateTime.UtcNow.AddSeconds(2);
-        try { _lastLiteEdits[ctx.Root] = await Task.Run(() => LiteWorkspace.Rotate(ctx, item, clockwise)); await ReloadAsync(item.FullPath); Log("90도 회전 저장 · 이번 실행의 되돌리기로 복구할 수 있습니다."); } catch (Exception ex) { Error(ex); } finally { _busy = false; }
+        try { _lastLiteEdits[ctx.Root] = await Task.Run(() => LiteWorkspace.Rotate(ctx, item, clockwise)); await ReloadAsync(item.FullPath); Log("90도 회전 저장 · 이번 실행의 되돌리기로 복구할 수 있습니다."); } catch (Exception ex) { Error(new IOException("'" + item.FileName + "' 회전 저장 안 됨: " + LiteFileIo.Describe(ex))); } finally { _busy = false; }
     }
     private async void Undo_Click(object s, RoutedEventArgs e) => await UndoDraftAsync();
     private void OpenExplorer_Click(object s, RoutedEventArgs e) { if (_active != null) Process.Start(new ProcessStartInfo(_active.Context.Root) { UseShellExecute = true }); }

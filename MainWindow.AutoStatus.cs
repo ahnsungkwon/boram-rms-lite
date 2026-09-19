@@ -105,8 +105,9 @@ public partial class MainWindow
         {
             if (_active == tab && _editing == item)
             {
-                _statusDirty = true; _autoSaveError = item.FileName + " · " + ex.Message;
-                Error(new IOException("'" + item.FileName + "' 상태 저장 실패: " + ex.Message + " 체크는 화면에 유지했습니다. '상태 다시 저장'으로 재시도하세요."));
+                var reason = LiteFileIo.Describe(ex);
+                _statusDirty = true; _autoSaveError = item.FileName + " · " + reason;
+                Error(new IOException("'" + item.FileName + "' 상태 저장 실패: " + reason + " 체크는 화면에 유지했습니다. '상태 다시 저장'으로 재시도하세요."));
             }
             return false;
         }

@@ -8,8 +8,8 @@
     <PlatformTarget>x64</PlatformTarget>
     <AssemblyName>BoramRMS_Lite_Setup</AssemblyName>
     <RootNamespace>BoramRms.Setup</RootNamespace>
-    <Version>1.0.1</Version>
-    <AppVersion>0.6.1</AppVersion>
+    <Version>1.0.2</Version>
+    <AppVersion>0.6.2</AppVersion>
     <ApplicationIcon>../Assets/rms-lite-green.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>

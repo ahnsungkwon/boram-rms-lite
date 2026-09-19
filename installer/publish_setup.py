@@ -22,6 +22,8 @@ SOURCE_FILES = [
     'installer/publish_setup.py', 'installer/README.md',
     'MainWindow.DockLayout.cs', 'DockLayoutTests.cs', 'MainWindow.xaml', 'MainWindow.xaml.cs',
     'MainWindow.Update.cs', 'GuideWindow.cs', 'LiteWorkflowTests.cs', 'release.py',
+    'LiteFileIo.cs', 'LiteWorkspace.cs', 'FileLockTests.cs',
+    'MainWindow.AutoStatus.cs', 'MainWindow.Simple.cs',
 ]
 
 def digest(path: Path) -> str:
@@ -48,7 +50,7 @@ def main() -> None:
     setup = OUT / f'BoramRMS_Lite_{VERSION}_Setup.exe'
     guide = OUT / 'FIRST_INSTALL.html'
     if (build['version'] != VERSION or build['tests'] < 15 or build['failures'] != 0
-            or build.get('appTests', 0) < 137 or build.get('fontProbePassed') is not True
+            or build.get('appTests', 0) < 151 or build.get('fontProbePassed') is not True
             or build['fontsBundled'] is not False or build['pythonRequiredOnTarget'] is not False
             or setup.stat().st_size != build['size'] or digest(setup) != build['sha256']):
         raise RuntimeError('Installer identity, tests, size or hash does not match.')

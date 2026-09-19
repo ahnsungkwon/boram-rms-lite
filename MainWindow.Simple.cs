@@ -84,12 +84,13 @@ public partial class MainWindow
         }
         catch (Exception ex)
         {
+            var reason = LiteFileIo.Describe(ex);
             if (savingName)
-                Error(new IOException("'" + item.FileName + "' 이름 저장 안 됨: " + ex.Message + " 이름을 고치거나 빈칸으로 두고 다시 이동하세요. '입력 원래대로' 버튼도 사용할 수 있습니다."));
+                Error(new IOException("'" + item.FileName + "' 이름 저장 안 됨: " + reason + " 이름을 고치거나 빈칸으로 두고 다시 이동하세요. '입력 원래대로' 버튼도 사용할 수 있습니다."));
             else
             {
-                _statusDirty = true; _autoSaveError = item.FileName + " · " + ex.Message;
-                Error(new IOException("'" + item.FileName + "' 상태 저장 안 됨: " + ex.Message + " 체크는 유지했습니다. 표시된 '상태 다시 저장' 버튼으로 재시도하세요."));
+                _statusDirty = true; _autoSaveError = item.FileName + " · " + reason;
+                Error(new IOException("'" + item.FileName + "' 상태 저장 안 됨: " + reason + " 체크는 유지했습니다. 표시된 '상태 다시 저장' 버튼으로 재시도하세요."));
             }
             return false;
         }

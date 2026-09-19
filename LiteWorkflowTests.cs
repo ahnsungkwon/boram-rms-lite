@@ -167,6 +167,7 @@ public static class LiteWorkflowTests
                 var c=Folder(run,"compress-old"); SelfTest.AddImage(c.Root,"1가상가.png"); var j=OldPending(c); var h=SafePaths.Hash(j);
                 var r=InPlaceCompression.Run(c,LiteWorkspace.Load(c),null,CancellationToken.None); Assert(r.Entries.Count==1&&r.Entries[0].Error.Length==0&&SafePaths.Hash(j)==h,"압축의 옛 기록 차단");
             });
+            await FileLockTests.RunAsync(run, Check, CheckAsync);
             await AutoStatusTests.RunAsync(run, Check, CheckAsync);
             await BlankNameTests.RunAsync(run, CheckAsync);
             await ThemeTests.RunAsync(run, Check, CheckAsync);

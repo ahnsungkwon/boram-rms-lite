@@ -30,7 +30,7 @@ public sealed record LiteSaveResult(string Path, LiteEdit? Edit);
 public static class LiteWorkspace
 {
     private static string Digest(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes));
-    private static string? Revision(string path) => File.Exists(path) ? SafePaths.Hash(path) : null;
+    private static string? Revision(string path) => LiteFileIo.Revision(path);
     public static string StoreDirectory(string image) => Path.Combine(Path.GetDirectoryName(image)!, ".rmslite");
     public static string StatePath(string image) => Path.Combine(StoreDirectory(image),
         Digest(Encoding.UTF8.GetBytes(Path.GetFileName(image).ToUpperInvariant())) + ".json");
@@ -38,7 +38,7 @@ public static class LiteWorkspace
     {
         var dir = StoreDirectory(image); SafePaths.NoLinks(dir); Directory.CreateDirectory(dir);
         var path = Path.Combine(dir, "write.lock"); SafePaths.NoLinks(path);
-        try { return new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None); }
+        try { return LiteFileIo.Retry(() => new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None)); }
         catch (IOException ex) { throw new IOException("이 폴더에서 다른 저장이 진행 중입니다. 잠시 후 다시 저장하세요.", ex); }
     }
     private static void CheckImage(FolderContext context, ImageItem item)
@@ -51,28 +51,18 @@ public static class LiteWorkspace
     }
     private static LiteRecord Record(string path, LiteState state, string? from = null, string? hash = null) =>
         new() { FileName = Path.GetFileName(path), Status = state.Status, Details = state.Details, Card = state.Card, Selections = state.Selections, RenameFrom = from, ImageHash = hash };
-    private static void WriteRecord(string image, LiteRecord record, string? expected)
+    private static string WriteRecord(string image, LiteRecord record, string? expected)
     {
         var path = StatePath(image); SafePaths.NoLinks(path);
         if (Revision(path) != expected) throw new IOException("이 이미지의 상태가 다른 창에서 바뀌었습니다. 새로고침 후 저장하세요.");
         var bytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(record, SettingsStore.Json));
-        if (Digest(bytes) == expected) return;
+        var revision = Digest(bytes);
+        if (revision == expected) return revision;
         AtomicReplace(path, bytes, expected, path + ".previous");
+        return revision; // Already committed: avoid a new failure reopening the saved file.
     }
     private static void AtomicReplace(string path, byte[] bytes, string? expected, string? backup)
-    {
-        SafePaths.NoLinks(path); if (backup != null) SafePaths.NoLinks(backup);
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        var temp = Path.Combine(Path.GetDirectoryName(path)!, ".lite-" + Guid.NewGuid().ToString("N") + ".tmp");
-        try
-        {
-            using (var stream = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None)) { stream.Write(bytes); stream.Flush(true); }
-            if (Revision(path) != expected) throw new IOException("저장 중 다른 프로그램에서 파일이 바뀌었습니다. 기존 파일은 덮어쓰지 않았습니다.");
-            if (expected == null) File.Move(temp, path);
-            else File.Replace(temp, path, backup);
-        }
-        finally { if (File.Exists(temp)) File.Delete(temp); }
-    }
+        => LiteFileIo.AtomicReplace(path, bytes, expected, backup);
     public static List<ImageItem> Load(FolderContext context, CancellationToken token = default)
     {
         Dictionary<string, LocalState> oldStates = new(StringComparer.OrdinalIgnoreCase);
@@ -96,7 +86,7 @@ public static class LiteWorkspace
                 SafePaths.NoLinks(statePath);
                 if (File.Exists(statePath))
                 {
-                    var bytes = File.ReadAllBytes(statePath); item.LiteRevision = Digest(bytes);
+                    var bytes = LiteFileIo.ReadBytes(statePath); item.LiteRevision = Digest(bytes);
                     var record = JsonSerializer.Deserialize<LiteRecord>(bytes, SettingsStore.Json) ?? throw new InvalidDataException();
                     if (record.Schema != 1 || !record.FileName.Equals(file.Name, StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException();
                     if (record.RenameFrom != null)
@@ -134,20 +124,21 @@ public static class LiteWorkspace
         using var gate = Lock(item.FullPath); CheckImage(context, item);
         if (Revision(StatePath(item.FullPath)) != item.LiteRevision) throw new IOException("다른 창에서 상태가 바뀌었습니다. 새로고침 후 다시 저장하세요.");
         var imageHash = SafePaths.Hash(item.FullPath);
+        string afterRevision;
         if (rename)
         {
             var staged = Record(target, state, item.FileName, imageHash);
-            WriteRecord(target, staged, Revision(StatePath(target)));
+            afterRevision = WriteRecord(target, staged, Revision(StatePath(target)));
             CheckImage(context, item);
             if (SafePaths.Hash(item.FullPath) != imageHash) throw new IOException("저장 중 이미지가 변경되어 이름을 바꾸지 않았습니다.");
             // If interrupted here, the original image and original state are untouched.
             File.Move(item.FullPath, target);
             // A staged record is readable only when the source is absent and target bytes match.
             // Finalization failure does not invalidate the already completed rename + state.
-            try { WriteRecord(target, Record(target, state), Revision(StatePath(target))); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+            try { afterRevision = WriteRecord(target, Record(target, state), afterRevision); } catch (IOException) { } catch (UnauthorizedAccessException) { }
         }
-        else WriteRecord(target, Record(target, state), item.LiteRevision);
-        return new(target, new(item.FullPath, target, before, imageHash, imageHash, Revision(StatePath(target))));
+        else afterRevision = WriteRecord(target, Record(target, state), item.LiteRevision);
+        return new(target, new(item.FullPath, target, before, imageHash, imageHash, afterRevision));
     }
     public static LiteEdit Rotate(FolderContext context, ImageItem item, bool clockwise)
     {
@@ -156,8 +147,9 @@ public static class LiteWorkspace
         var rotated = new TransformedBitmap(image, new RotateTransform(clockwise ? 90 : 270)); rotated.Freeze();
         var bytes = ImageProcessing.Encode(rotated, Path.GetExtension(item.FullPath), 95);
         var backup = Path.Combine(StoreDirectory(item.FullPath), Guid.NewGuid().ToString("N") + ".rotation.bak");
+        var stateRevision = Revision(StatePath(item.FullPath));
         CheckImage(context, item); AtomicReplace(item.FullPath, bytes, hash, backup);
-        return new(item.FullPath, item.FullPath, LiteState.From(item), hash, Digest(bytes), Revision(StatePath(item.FullPath)), backup);
+        return new(item.FullPath, item.FullPath, LiteState.From(item), hash, Digest(bytes), stateRevision, backup);
     }
     public static string Undo(FolderContext context, LiteEdit edit)
     {
