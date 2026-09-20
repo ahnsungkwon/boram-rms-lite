@@ -17,11 +17,11 @@ VERSION = ET.parse(ROOT / 'BoramRms.Lite.csproj').findtext('./PropertyGroup/Vers
 if not VERSION or not re.fullmatch(r'\d+\.\d+\.\d+', VERSION):
     raise SystemExit('Invalid stable project version.')
 # Public packages use a fresh tree; pre-merge verified artifacts stay untouched.
-OUT = ROOT / 'dist' / 'public' / 'releases' / VERSION
+OUT = ROOT / 'dist' / 'public' / 'retry-1' / 'releases' / VERSION
 BUNDLE = OUT / 'BoramRMS_Lite'
 ZIP = OUT / f'BoramRMS_Lite_{VERSION}_win-x64.zip'
 META = OUT / 'update-manifest.json'
-PROOF = ROOT / 'tests-data' / 'public' / 'releases' / VERSION
+PROOF = ROOT / 'tests-data' / 'public' / 'retry-1' / 'releases' / VERSION
 
 
 def run(args: list[str], *, capture: bool = False) -> str:
@@ -43,6 +43,58 @@ def write_new(path: Path, value: object) -> None:
         json.dump(value, handle, ensure_ascii=False, indent=2)
 
 
+LICENSE_NAMES = ('license.txt', 'license')
+NOTICE_NAMES = ('third-party-notices.txt', 'thirdpartynotices.txt', 'third-party-notices')
+DESKTOP_PACKAGE = 'microsoft.windowsdesktop.app.runtime.win-x64'
+DESKTOP_VERSION = '8.0.31'
+DESKTOP_NUSPEC_SHA = '8b46f6be443fa437fa52d431dbb4b34b9834d0cab3a663a92a19ce57f3008d96'
+DESKTOP_LICENSE_SHA = 'a89886665765362eb77e0f8e26602c924520041d1711b2eedc136434fe4d01ab'
+
+
+def select_runtime_notices(source: Path, package: str, version: str):
+    available = {p.name.casefold(): p for p in source.iterdir() if p.is_file()}
+    license_file = next((available[n] for n in LICENSE_NAMES if n in available), None)
+    notice_files = [available[n] for n in NOTICE_NAMES if n in available]
+    if license_file is None:
+        raise SystemExit('Runtime license missing: ' + package)
+    if not notice_files:
+        nuspec = source / (package + '.nuspec')
+        if not (package == DESKTOP_PACKAGE and version == DESKTOP_VERSION
+                and nuspec.is_file() and digest(nuspec) == DESKTOP_NUSPEC_SHA
+                and digest(license_file) == DESKTOP_LICENSE_SHA):
+            raise SystemExit('Unreviewed runtime notice omission: ' + package)
+        hidden_notices = [p for p in source.rglob('*') if p.is_file()
+                          and ('notice' in p.name.casefold() or 'thirdparty' in p.name.casefold())]
+        if hidden_notices:
+            raise SystemExit('Additional runtime notices require review')
+    return [license_file, *notice_files]
+
+
+def validate_runtime_notice_inventory(notices):
+    expected = {'microsoft.netcore.app.runtime.win-x64', DESKTOP_PACKAGE}
+    if len(notices) != 2 or {item.get('package') for item in notices} != expected:
+        raise SystemExit('Runtime notice inventory incomplete')
+    for item in notices:
+        package, version, files = item['package'], item['version'], item['files']
+        if not re.fullmatch(r'\d+\.\d+\.\d+', version):
+            raise SystemExit('Invalid runtime notice version')
+        names = [Path(entry['name']).name.casefold() for entry in files]
+        if len(names) != len(set(names)) or sum(n in LICENSE_NAMES for n in names) != 1:
+            raise SystemExit('Missing or duplicate runtime license')
+        if any(n not in LICENSE_NAMES + NOTICE_NAMES for n in names):
+            raise SystemExit('Unexpected runtime notice file')
+        if not any(n in NOTICE_NAMES for n in names):
+            if not (package == DESKTOP_PACKAGE and version == DESKTOP_VERSION and len(files) == 1
+                    and files[0]['sha256'] == DESKTOP_LICENSE_SHA
+                    and item.get('reviewedNuspecSha256') == DESKTOP_NUSPEC_SHA
+                    and item.get('separateNoticeProvided') is False):
+                raise SystemExit('Unreviewed runtime notice omission')
+        for entry in files:
+            prefix = 'licenses/' + package + '-' + version + '/'
+            if entry['name'] != prefix + Path(entry['name']).name:
+                raise SystemExit('Unexpected runtime notice path')
+
+
 def copy_runtime_notices() -> None:
     """Keep the notices shipped with the exact restored runtime packages."""
     assets = json.loads((ROOT / 'obj' / 'project.assets.json').read_text('utf-8'))
@@ -60,13 +112,7 @@ def copy_runtime_notices() -> None:
         source = next((folder for folder in candidates if folder.is_dir()), None)
         if source is None:
             raise SystemExit('Restored runtime package not found: ' + package)
-        available = {p.name.casefold(): p for p in source.iterdir() if p.is_file()}
-        chosen = []
-        for required in [('license.txt', 'license'), ('third-party-notices.txt', 'thirdpartynotices.txt')]:
-            match = next((available[key] for key in required if key in available), None)
-            if match is None:
-                raise SystemExit('Runtime license/notice missing: ' + package)
-            chosen.append(match)
+        chosen = select_runtime_notices(source, package, version)
         destination = BUNDLE / 'licenses' / (package + '-' + version)
         destination.mkdir(parents=True, exist_ok=False)
         files = []
@@ -78,9 +124,12 @@ def copy_runtime_notices() -> None:
             with target.open('xb') as handle:
                 handle.write(raw)
             files.append({'name': target.relative_to(BUNDLE).as_posix(), 'sha256': digest(target)})
-        records.append({'package': package, 'version': version, 'files': files})
-    if len(records) != 2:
-        raise SystemExit('Expected .NET and Windows Desktop notices')
+        record = {'package': package, 'version': version, 'files': files,
+                  'separateNoticeProvided': any(p.name.casefold() in NOTICE_NAMES for p in chosen)}
+        if not record['separateNoticeProvided']:
+            record['reviewedNuspecSha256'] = digest(source / (package + '.nuspec'))
+        records.append(record)
+    validate_runtime_notice_inventory(records)
     write_new(BUNDLE / 'licenses' / 'RUNTIME_NOTICES.json', records)
 
 
@@ -135,8 +184,7 @@ def verify_local() -> dict:
             if archive.read('BoramRMS_Lite/' + name) != (ROOT / name).read_bytes():
                 raise SystemExit('Packaged public document differs from source: ' + name)
         notices = json.loads(archive.read('BoramRMS_Lite/licenses/RUNTIME_NOTICES.json'))
-        if len(notices) != 2 or any(len(item['files']) != 2 for item in notices):
-            raise SystemExit('Runtime notice inventory incomplete')
+        validate_runtime_notice_inventory(notices)
         for item in notices:
             for entry in item['files']:
                 if hashlib.sha256(archive.read('BoramRMS_Lite/' + entry['name'])).hexdigest() != entry['sha256']:

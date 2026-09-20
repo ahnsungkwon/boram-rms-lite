@@ -13,8 +13,8 @@ REPO = 'ahnsungkwon/boram-rms-lite'
 VERSION = ET.parse(ROOT / 'BoramRms.Lite.csproj').findtext('./PropertyGroup/Version')
 SETUP_VERSION = ET.parse(ROOT / 'installer/Setup.csproj').findtext('./PropertyGroup/Version')
 TAG = 'v' + VERSION
-OUT = ROOT / 'dist' / 'public' / 'setup' / VERSION
-APP_RELEASE = ROOT / 'dist' / 'public' / 'releases' / VERSION
+OUT = ROOT / 'dist' / 'public' / 'retry-1' / 'setup' / VERSION
+APP_RELEASE = ROOT / 'dist' / 'public' / 'retry-1' / 'releases' / VERSION
 SOURCE_FILES = [
     'BoramRms.Lite.csproj', 'installer/Setup.csproj', 'installer/app.manifest',
     'installer/InstallCore.cs', 'installer/FontInstaller.cs', 'installer/Program.cs',
@@ -89,7 +89,7 @@ def main() -> None:
         'fontDownload': 'optional; fetched directly from the official publisher on the target PC',
         'fontRegistrationTestedOnRealProfile': False,
     }
-    probe_path = ROOT / 'tests-data' / 'public' / ('setup-font-' + VERSION.replace('.', '')) / 'FONT_PROBE.json'
+    probe_path = ROOT / 'tests-data' / 'public' / 'retry-1' / ('setup-font-' + VERSION.replace('.', '')) / 'FONT_PROBE.json'
     if probe_path.exists():
         probe = json.loads(probe_path.read_text('utf-8'))
         info['fontDownloadAndMemoryProbePassed'] = probe.get('success') is True

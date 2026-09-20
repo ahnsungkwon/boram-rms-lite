@@ -13,8 +13,8 @@
     <ApplicationIcon>../Assets/rms-lite-green.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
-    <PackagePath Condition="'$(PackagePath)' == ''">../dist/public/releases/$(AppVersion)/BoramRMS_Lite_$(AppVersion)_win-x64.zip</PackagePath>
-    <MetadataPath Condition="'$(MetadataPath)' == ''">../dist/public/releases/$(AppVersion)/update-manifest.json</MetadataPath>
+    <PackagePath Condition="'$(PackagePath)' == ''">../dist/public/retry-1/releases/$(AppVersion)/BoramRMS_Lite_$(AppVersion)_win-x64.zip</PackagePath>
+    <MetadataPath Condition="'$(MetadataPath)' == ''">../dist/public/retry-1/releases/$(AppVersion)/update-manifest.json</MetadataPath>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System.IO.Compression" />

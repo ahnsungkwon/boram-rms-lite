@@ -11,7 +11,9 @@
 - WPF license: https://github.com/dotnet/wpf/blob/main/LICENSE.TXT
 - Windows Forms license: https://github.com/dotnet/winforms/blob/main/LICENSE.TXT
 
-재배포 시 실제 포함한 런타임 버전에 해당하는 원문 라이선스·고지를 함께 보존하세요. 새 공개 패키지는 실제 복원된 런타임 패키지의 원문을 `licenses/`에 포함하고 `licenses/RUNTIME_NOTICES.json`에 구성요소 버전·파일 해시를 기록합니다. 원문이 없으면 공개용 패키징을 중단합니다.
+재배포 시 실제 포함한 런타임 버전에 해당하는 원문 라이선스·고지를 함께 보존하세요. 새 공개 패키지는 복원된 런타임 패키지가 제공하는 원문을 `licenses/`에 포함하고 `licenses/RUNTIME_NOTICES.json`에 구성요소 버전·파일 해시를 기록합니다. 라이선스 원문 누락은 항상 차단합니다.
+
+확인된 Windows Desktop 8.0.31 NuGet 패키지는 별도 제3자 고지 파일 없이 `LICENSE`를 제공합니다. 해당 원본 LICENSE 및 NuGet 명세의 고정 SHA-256이 모두 일치하고 다른 고지 파일이 없을 때만 이 구성을 허용하며, manifest에 `separateNoticeProvided: false`와 명세 해시를 기록합니다. 존재하지 않는 고지를 만들거나 다른 패키지의 고지로 대체하지 않습니다. .NETCore 패키지의 라이선스와 제3자 고지는 모두 포함하고, 새로운 버전이나 다른 구성은 다시 확인하기 전까지 차단합니다.
 
 ## Pretendard — optional download
 

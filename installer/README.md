@@ -25,14 +25,14 @@ Python은 필요하지 않습니다. 기본 위치는 `%LOCALAPPDATA%\Programs\B
 ## 검증과 배포
 
 새 배포는 기존 앱 시험과 L01~L14 잠금 재현을 포함한 최소 151개 시험, 설치 15개 시험, 설치된 앱 재시험, 공식 서체 다운로드·메모리 검수를 통과해야 생성됩니다.
-공개용 산출물은 `dist/public` 아래에 새로 생성합니다. 기존 `dist/releases/0.6.2`와 `dist/setup/0.6.2` 검수본은 덮어쓰지 않습니다.
+공개용 산출물은 `dist/public/retry-1` 아래에 새로 생성합니다. 기존 `dist/releases/0.6.2`와 `dist/setup/0.6.2` 검수본, 처음 중단된 `dist/public/releases/0.6.2` 산출물은 덮어쓰지 않습니다.
 통과 여부는 해당 실행에서 생성한 다음 결과로 확인합니다. 이전 버전의 시험 기록으로 대체하지 않습니다.
 
-- `dist/public/releases/0.6.2/BUILD_RESULT.json`
-- `dist/public/setup/0.6.2/SETUP_BUILD_RESULT.json`
-- `dist/public/releases/0.6.2/PUBLISH_RESULT.json`
-- `dist/public/setup/0.6.2/SETUP_PUBLISH_RESULT.json`
-- `dist/public/releases/0.6.2/PUBLIC_DOWNLOAD_RESULT.json`
+- `dist/public/retry-1/releases/0.6.2/BUILD_RESULT.json`
+- `dist/public/retry-1/setup/0.6.2/SETUP_BUILD_RESULT.json`
+- `dist/public/retry-1/releases/0.6.2/PUBLISH_RESULT.json`
+- `dist/public/retry-1/setup/0.6.2/SETUP_PUBLISH_RESULT.json`
+- `dist/public/retry-1/releases/0.6.2/PUBLIC_DOWNLOAD_RESULT.json`
 
 ```text
 python release.py build

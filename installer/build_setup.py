@@ -6,8 +6,8 @@ ROOT = Path(__file__).resolve().parents[1]
 VERSION = ET.parse(ROOT / 'BoramRms.Lite.csproj').findtext('./PropertyGroup/Version')
 if ET.parse(ROOT / 'installer/Setup.csproj').findtext('./PropertyGroup/AppVersion') != VERSION:
     raise RuntimeError('Installer payload version differs from the app project')
-OUT = ROOT / 'dist' / 'public' / 'setup' / VERSION
-BUNDLE = ROOT / 'dist' / 'public' / 'releases' / VERSION
+OUT = ROOT / 'dist' / 'public' / 'retry-1' / 'setup' / VERSION
+BUNDLE = ROOT / 'dist' / 'public' / 'retry-1' / 'releases' / VERSION
 
 def digest(path):
     h=hashlib.sha256()
@@ -31,12 +31,12 @@ def main():
     OUT.mkdir(parents=True,exist_ok=True)
     target=OUT/f'BoramRMS_Lite_{VERSION}_Setup.exe'
     if target.exists():raise RuntimeError('Setup output already exists; do not overwrite')
-    proof=ROOT/'tests-data'/'public'/('setup-'+VERSION.replace('.',''))
+    proof=ROOT/'tests-data'/'public'/'retry-1'/('setup-'+VERSION.replace('.',''))
     run([built,'--self-test',proof])
     actual=Path((proof/'latest-run.txt').read_text('utf-8').strip())
     result=json.loads((actual/'RESULT.json').read_text('utf-8'))
     if result['failed'] or result['passed']<15:raise RuntimeError('Setup tests failed; no final installer was created')
-    font_proof=ROOT/'tests-data'/'public'/('setup-font-'+VERSION.replace('.',''))
+    font_proof=ROOT/'tests-data'/'public'/'retry-1'/('setup-font-'+VERSION.replace('.',''))
     run([built,'--font-probe',font_proof])
     font_result=json.loads((font_proof/'FONT_PROBE.json').read_text('utf-8'))
     if font_result.get('success') is not True or font_result.get('registryChanged') is not False:

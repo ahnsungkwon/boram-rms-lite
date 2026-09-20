@@ -60,7 +60,7 @@ def get_json(url: str) -> dict:
 
 def main() -> None:
     local_manifest = release.verify_local()
-    setup_dir = release.ROOT / 'dist' / 'public' / 'setup' / release.VERSION
+    setup_dir = release.ROOT / 'dist' / 'public' / 'retry-1' / 'setup' / release.VERSION
     setup_build = json.loads((setup_dir / 'SETUP_BUILD_RESULT.json').read_text('utf-8'))
     require(setup_build['failures'] == 0 and setup_build['tests'] >= 15
             and setup_build['appTests'] >= 151, 'Required installer tests are missing')
@@ -79,7 +79,7 @@ def main() -> None:
     paths = [release.ZIP, release.META,
              setup_dir / f'BoramRMS_Lite_{release.VERSION}_Setup.exe',
              setup_dir / 'FIRST_INSTALL.html', setup_dir / 'SETUP_INFO.json']
-    run = release.ROOT / 'tests-data' / 'public' / 'anonymous-downloads' / (release.VERSION + '-' + uuid.uuid4().hex)
+    run = release.ROOT / 'tests-data' / 'public' / 'retry-1' / 'anonymous-downloads' / (release.VERSION + '-' + uuid.uuid4().hex)
     run.mkdir(parents=True, exist_ok=False)
     checks = []
     for local in paths:
