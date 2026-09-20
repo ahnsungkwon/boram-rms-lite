@@ -70,7 +70,7 @@
       <ScrollViewer x:Name="RenameScroller" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
        <StackPanel x:Name="RenameBody" Margin="12,6">
         <TextBlock x:Name="CurrentFileText" Text="선택한 이미지가 없습니다" Foreground="{DynamicResource MutedTextBrush}" FontSize="11" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" Margin="0,0,0,4"/>
-        <TextBlock Text="구좌수 + 이름" Style="{StaticResource SectionTitle}"/>
+        <DockPanel Margin="0,0,0,3"><Button x:Name="CopyApplicantNameButton" DockPanel.Dock="Right" Content="이름 복사" Click="CopyApplicantName_Click" Style="{StaticResource QuietButton}" Padding="8,3" ToolTip="선택 시 신청서 이름만 자동 복사됩니다. 구좌수·전화번호는 복사하지 않습니다."/><TextBlock Text="구좌수 + 이름" Style="{StaticResource SectionTitle}" VerticalAlignment="Center"/></DockPanel>
         <TextBox x:Name="CombinedTextBox" MinHeight="62" Padding="12,9" VerticalContentAlignment="Center" TextWrapping="NoWrap" FontSize="24" FontWeight="Bold" CharacterCasing="Upper" TextChanged="Rename_TextChanged" BorderBrush="{DynamicResource FocusBrush}" AutomationProperties.Name="구좌수와 이름 입력"/>
         <TextBlock x:Name="NewFileText" Text="—" Foreground="{DynamicResource AccentBrush}" FontSize="11" TextTrimming="CharacterEllipsis" Margin="0,3,0,5"/>
         <Button x:Name="SaveNextButton" Click="SaveNext_Click" Style="{StaticResource PrimaryButton}" Height="32" Margin="0,0,0,4"><DockPanel><Border DockPanel.Dock="Right" Background="#20FFFFFF" CornerRadius="3" Padding="5,1" Margin="12,0,0,0"><TextBlock Text="Space" Foreground="White" FontSize="10"/></Border><TextBlock Text="저장하고 다음" Foreground="White"/></DockPanel></Button>

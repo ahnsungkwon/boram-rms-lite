@@ -28,6 +28,7 @@ public partial class MainWindow
                 if (entry.Error.Length > 0) Log("압축 제외 · " + Path.GetFileName(entry.Path) + " · " + entry.Error);
             });
             var result = await Task.Run(() => InPlaceCompression.Run(context, items, progress, _compressionCancellation.Token));
+            foreach (var entry in result.Entries.Where(entry => entry.Changed)) _previewLoader.Invalidate(entry.Path);
             _lastLiteEdits.Remove(context.Root);
             await ReloadAsync(preferred); await LastPreviewTask;
             var changed = result.Entries.Count(i => i.Changed); var skipped = result.Entries.Count(i => i.Skipped); var failed = result.Entries.Count(i => i.Error.Length > 0);

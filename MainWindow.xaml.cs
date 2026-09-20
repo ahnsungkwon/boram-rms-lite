@@ -27,7 +27,12 @@ public partial class MainWindow : Window
     public bool HasPendingRename => _dirty;
     public bool HasPendingStatus => _statusDirty;
     private int _loadGeneration, _previewGeneration;
-    private CancellationTokenSource? _loadCancellation, _thumbnailCancellation;
+    private CancellationTokenSource? _loadCancellation, _thumbnailCancellation, _previewCancellation;
+    private readonly PreviewImageLoaderService _previewLoader = new();
+    private readonly TextBlock[] _quotaProgressLabels = new TextBlock[6];
+    private readonly ProgressBar[] _quotaProgressBars = new ProgressBar[6];
+    private object? _quotaSummarySource;
+    private int[,] _quotaSummaryPrefix = new int[1, 6];
     private FileSystemWatcher? _watcher;
     private DateTime _ignoreWatcherUntil;
     private Point? _drag;
@@ -39,6 +44,7 @@ public partial class MainWindow : Window
     public MainWindow(bool testMode = false)
     {
         TestMode = testMode;
+        if (TestMode) ShowActivated = false;
         ThemeManager.EnsureLoaded();
         InitializeComponent();
         _previousSettings = SettingsStore.Load();
@@ -118,6 +124,8 @@ public partial class MainWindow : Window
     }
     public async Task ReloadAsync(string? preferred = null)
     {
+        ResetApplicantNameCopy();
+        _previewCancellation?.Cancel();
         _loadCancellation?.Cancel(); _thumbnailCancellation?.Cancel();
         var cancellation = new CancellationTokenSource(); _loadCancellation = cancellation;
         var version = ++_loadGeneration; ++_previewGeneration; var tab = _active;
@@ -147,6 +155,8 @@ public partial class MainWindow : Window
     private void WatchChanged(object sender, FileSystemEventArgs e)
     {
         if (e.FullPath.Split(Path.DirectorySeparatorChar).Any(p => p is ".boramrms" or ".rmslite") || DateTime.UtcNow < _ignoreWatcherUntil) return;
+        _previewLoader.Invalidate(e.FullPath);
+        if (e is RenamedEventArgs renamed) _previewLoader.Invalidate(renamed.OldFullPath);
         Dispatcher.BeginInvoke(() => { if (!_closing && !_busy) StatusText.Text = "폴더 변경 감지 · 입력을 저장한 뒤 F5로 새로고침하세요."; });
     }
     public void Rebind(string? preferred = null)
@@ -181,6 +191,8 @@ public partial class MainWindow : Window
     }
     private void ClearSelection()
     {
+        ResetApplicantNameCopy(forgetSelection: true);
+        _previewCancellation?.Cancel();
         _editing = null; _filling = true; CombinedTextBox.Text = "";
         foreach (var box in _statusBoxes.Keys.Concat(RepairReasons.Children.OfType<CheckBox>()).Append(CardCheck).Append(MinorCheck)) box.IsChecked = false;
         foreach (var text in new[] { RepairMemo, StatusMemo, PreQuota, PostQuota }) text.Text = "";
@@ -191,24 +203,35 @@ public partial class MainWindow : Window
     }
     private async Task ShowSelectionAsync(ImageItem? item)
     {
+        _previewCancellation?.Cancel();
+        _previewCancellation?.Dispose();
+        var cancellation = new CancellationTokenSource(); _previewCancellation = cancellation;
         var generation = ++_previewGeneration;
         if (item == null) { ClearSelection(); return; }
-        _editing = item; _filling = true;
+        _editing = item; QueueApplicantNameCopy(item); _filling = true;
         CombinedTextBox.Text = item.Key; CurrentFileText.Text = item.RelativePath; SelectedFileText.Text = item.FileName;
         LoadStatus(item); _filling = false; _dirty = _statusDirty = false; _autoSaveError = null; UpdateDraftHint();
         if (item.StateNotice.Length > 0) Log(item.StateNotice);
         if (_active != null) _active.SelectedPath = item.FullPath;
         PreviewImage.Source = null; ImageError.Text = ""; EmptyHint.Visibility = Visibility.Collapsed;
         ImageDetails.Text = item.StatusLabel + " · Lite 상태";
-        UpdateSummary();
+        UpdateSummary(refreshCounts: false);
         try
         {
-            var source = await Task.Run(() => ImageProcessing.Load(item.FullPath, 3200));
-            if (generation != _previewGeneration || _closing) return;
+            var source = await _previewLoader.LoadAsync(item.FullPath, cancellation.Token);
+            if (generation != _previewGeneration || cancellation.IsCancellationRequested || _closing) return;
             PreviewImage.Source = source;
             ApplyImageViewport(source);
             ImageDetails.Text = $"{source.PixelWidth} × {source.PixelHeight}px · {item.Length / 1024.0:0}KB · {item.StatusLabel} · Lite 상태";
+            var index = ImageList.SelectedIndex;
+            // Warm only the immediate neighbours; superseded prefetches share cancellation
+            // with this selection and cannot fill an unbounded queue during rapid navigation.
+            foreach (var neighbourIndex in new[] { index + 1, index - 1 })
+                if (neighbourIndex >= 0 && neighbourIndex < ImageList.Items.Count &&
+                    ImageList.Items[neighbourIndex] is ImageItem neighbour)
+                    _ = _previewLoader.PrefetchAsync(neighbour.FullPath, cancellation.Token);
         }
+        catch (OperationCanceledException) { }
         catch (Exception ex) { if (generation == _previewGeneration) { EmptyHint.Visibility = Visibility.Visible; ImageError.Text = ex.Message; } }
     }
     private void LoadStatus(ImageItem item)
@@ -238,26 +261,54 @@ public partial class MainWindow : Window
     }
     private void NextImage_Click(object s, RoutedEventArgs e) => MoveImage(1);
     private void PreviousImage_Click(object s, RoutedEventArgs e) => MoveImage(-1);
-    private void UpdateSummary()
+    private void UpdateSummary(bool refreshCounts = true)
     {
         if (_initializing) return;
-        SyncFolderSelector();
-        StatusSummary.Text = $"전체 {AllItems.Count} / 표시 {ImageList.Items.Count}";
-        LocalSummary.Text = $"CMS {AllItems.Count(i => !i.Card)} · 카드 {AllItems.Count(i => i.Card)} · 보완 {AllItems.Count(i => i.Status.Contains("보완"))} · 취소 {AllItems.Count(i => i.Status.Contains("취소"))}";
-        var index = ImageList.SelectedIndex + 1;
+        if (refreshCounts)
+        {
+            SyncFolderSelector();
+            StatusSummary.Text = $"전체 {AllItems.Count} / 표시 {ImageList.Items.Count}";
+            var cards = 0; var repairs = 0; var cancellations = 0;
+            foreach (var item in AllItems)
+            {
+                if (item.Card) cards++;
+                if (item.Status.Contains("보완")) repairs++;
+                if (item.Status.Contains("취소")) cancellations++;
+            }
+            LocalSummary.Text = $"CMS {AllItems.Count - cards} · 카드 {cards} · 보완 {repairs} · 취소 {cancellations}";
+        }
+        if (refreshCounts || !ReferenceEquals(_quotaSummarySource, ImageList.ItemsSource) ||
+            _quotaSummaryPrefix.GetLength(0) != ImageList.Items.Count + 1)
+        {
+            _quotaSummarySource = ImageList.ItemsSource;
+            _quotaSummaryPrefix = new int[ImageList.Items.Count + 1, 6];
+            for (var row = 0; row < ImageList.Items.Count; row++)
+            {
+                for (var bucket = 0; bucket < 6; bucket++)
+                    _quotaSummaryPrefix[row + 1, bucket] = _quotaSummaryPrefix[row, bucket];
+                if (ImageList.Items[row] is ImageItem item && int.TryParse(item.Quota, out var quota) && quota > 0)
+                    _quotaSummaryPrefix[row + 1, Math.Min(quota, 6) - 1]++;
+            }
+        }
+        var index = Math.Clamp(ImageList.SelectedIndex + 1, 0, ImageList.Items.Count);
         ImagePositionText.Text = $"{index} / {ImageList.Items.Count}"; ProgressSummary.Text = $"검수 위치 {index} / {ImageList.Items.Count} · 선택 위치 기준 (완료 기록 아님)";
         PreviousImageRail.IsEnabled = index > 1;
         NextImageRail.IsEnabled = index > 0 && index < ImageList.Items.Count;
         CompressOriginalsButton.IsEnabled = _active?.Lease.Writable == true && ImageList.Items.Count > 0;
-        QuotaProgress.Children.Clear();
-        for (int n = 1; n <= 6; n++)
+        for (int bucket = 0; bucket < 6; bucket++)
         {
-            var visible = ImageList.Items.Cast<ImageItem>().ToList();
-            bool InBucket(ImageItem item) => int.TryParse(item.Quota, out var q) && (n < 6 ? q == n : q >= n);
-            var total = visible.Count(InBucket); var done = visible.Take(index).Count(InBucket);
-            var panel = new StackPanel { Margin = new Thickness(3,0,3,0) };
-            panel.Children.Add(new TextBlock { Text = $"{n}{(n == 6 ? "+" : "")}구좌 {done}/{total}", FontSize = 10 });
-            panel.Children.Add(new ProgressBar { Height = 4, Margin = new Thickness(0,4,0,0), Maximum = Math.Max(1,total), Value = done }); QuotaProgress.Children.Add(panel);
+            if (_quotaProgressLabels[bucket] == null)
+            {
+                var panel = new StackPanel { Margin = new Thickness(3, 0, 3, 0) };
+                panel.Children.Add(_quotaProgressLabels[bucket] = new TextBlock { FontSize = 10 });
+                panel.Children.Add(_quotaProgressBars[bucket] = new ProgressBar { Height = 4, Margin = new Thickness(0, 4, 0, 0) });
+                QuotaProgress.Children.Add(panel);
+            }
+            var total = _quotaSummaryPrefix[ImageList.Items.Count, bucket];
+            var done = _quotaSummaryPrefix[index, bucket];
+            _quotaProgressLabels[bucket].Text = $"{bucket + 1}{(bucket == 5 ? "+" : "")}구좌 {done}/{total}";
+            _quotaProgressBars[bucket].Maximum = Math.Max(1, total);
+            _quotaProgressBars[bucket].Value = done;
         }
     }
     private async void Thumbnails_Click(object s, RoutedEventArgs e) { _thumbnails = !_thumbnails; SetTemplate(); if (_thumbnails) await LoadThumbnailsAsync(); }
@@ -266,7 +317,24 @@ public partial class MainWindow : Window
     {
         _thumbnailCancellation?.Cancel(); var c = new CancellationTokenSource(); _thumbnailCancellation = c;
         var data = AllItems.ToArray();
-        try { foreach (var item in data) { c.Token.ThrowIfCancellationRequested(); if (item.Thumbnail != null) continue; try { item.Thumbnail = await Task.Run(() => ImageProcessing.Load(item.FullPath, 140), c.Token); } catch (OperationCanceledException) { throw; } catch { } } if (!c.IsCancellationRequested && !_closing) ImageList.Items.Refresh(); } catch (OperationCanceledException) { }
+        try
+        {
+            foreach (var item in data)
+            {
+                c.Token.ThrowIfCancellationRequested();
+                if (item.Thumbnail != null) continue;
+                try
+                {
+                    var source = await Task.Run(() => PreviewImageLoaderService.LoadDetachedPreview(item.FullPath, 140), c.Token);
+                    c.Token.ThrowIfCancellationRequested();
+                    if (_closing) return;
+                    item.Thumbnail = source; item.NotifyChanged();
+                }
+                catch (OperationCanceledException) { throw; }
+                catch { }
+            }
+        }
+        catch (OperationCanceledException) { }
     }
     private void Zoom(double factor) { if (_active != null) SetViewport(ImageScale.ScaleX * factor, ImageTranslate.X, ImageTranslate.Y); }
     private void Fit() { if (_active != null) { _active.Camera.BaseWidth = 0; SetViewport(1, 0, 0); if (PreviewImage.Source is BitmapSource image) ApplyImageViewport(image); } }
@@ -283,7 +351,7 @@ public partial class MainWindow : Window
     {
         if (!Writable() || _editing == null || _active == null || !await TrySaveCurrentAsync()) return;
         var item = _editing; var ctx = _active.Context; _busy = true; _ignoreWatcherUntil = DateTime.UtcNow.AddSeconds(2);
-        try { _lastLiteEdits[ctx.Root] = await Task.Run(() => LiteWorkspace.Rotate(ctx, item, clockwise)); await ReloadAsync(item.FullPath); Log("90도 회전 저장 · 이번 실행의 되돌리기로 복구할 수 있습니다."); } catch (Exception ex) { Error(new IOException("'" + item.FileName + "' 회전 저장 안 됨: " + LiteFileIo.Describe(ex))); } finally { _busy = false; }
+        try { _lastLiteEdits[ctx.Root] = await Task.Run(() => LiteWorkspace.Rotate(ctx, item, clockwise)); _previewLoader.Invalidate(item.FullPath); await ReloadAsync(item.FullPath); Log("90도 회전 저장 · 이번 실행의 되돌리기로 복구할 수 있습니다."); } catch (Exception ex) { Error(new IOException("'" + item.FileName + "' 회전 저장 안 됨: " + LiteFileIo.Describe(ex))); } finally { _busy = false; }
     }
     private async void Undo_Click(object s, RoutedEventArgs e) => await UndoDraftAsync();
     private void OpenExplorer_Click(object s, RoutedEventArgs e) { if (_active != null) Process.Start(new ProcessStartInfo(_active.Context.Root) { UseShellExecute = true }); }
@@ -297,7 +365,7 @@ public partial class MainWindow : Window
             if (await TrySaveCurrentAsync()) { _allowClose = true; _ = Dispatcher.BeginInvoke(new Action(Close)); }
             return;
         }
-        _closing = true; _folderScan?.Cancel(); _loadCancellation?.Cancel(); _thumbnailCancellation?.Cancel(); _watcher?.Dispose();
+        _closing = true; ResetApplicantNameCopy(); _previewCancellation?.Cancel(); _previewLoader.Clear(); _folderScan?.Cancel(); _loadCancellation?.Cancel(); _thumbnailCancellation?.Cancel(); _watcher?.Dispose();
         foreach (var w in _docks.Values.ToArray()) w.Close();
         try { SettingsStore.Save(new SavedSettings { Width = RestoreBounds.Width > 0 ? RestoreBounds.Width : Width, Height = RestoreBounds.Height > 0 ? RestoreBounds.Height : Height, LeftWidth = DockedPanelWidth("rename"), RightWidth = DockedPanelWidth("list"), Folders = Tabs.Select(t => t.Context.Root).ToList(), Selected = Tabs.Where(t => t.SelectedPath != null).ToDictionary(t => t.Context.Root, t => t.SelectedPath!), Thumbnails = _thumbnails }); } catch { }
         foreach (var tab in Tabs) tab.Dispose();
@@ -327,7 +395,7 @@ public partial class MainWindow : Window
         };
         window.PreviewKeyDown += Window_KeyDown;
         window.PreviewKeyUp += Window_KeyUp;
-        if (TestMode) { window.WindowStartupLocation = WindowStartupLocation.Manual; window.Left = -16000; window.Top = -16000; }
+        if (TestMode) { window.ShowActivated = false; window.WindowStartupLocation = WindowStartupLocation.Manual; window.Left = -16000; window.Top = -16000; }
         window.Show(); QueueDockViewportRefresh();
     }
     private void ResetLayout_Click(object s, RoutedEventArgs e) { if (_busy || _loading) return; foreach (var w in _docks.Values.ToArray()) w.Close(); LeftColumn.Width = new GridLength(316); RightColumn.Width = new GridLength(288); Fit(); }

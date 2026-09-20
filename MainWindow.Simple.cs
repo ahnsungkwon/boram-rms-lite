@@ -156,6 +156,8 @@ public partial class MainWindow
             try
             {
                 var path = await Task.Run(() => LiteWorkspace.Undo(context, edit));
+                _previewLoader.Invalidate(edit.AfterPath);
+                _previewLoader.Invalidate(path);
                 _lastLiteEdits.Remove(context.Root);
                 await ReloadAsync(path); await LastPreviewTask;
                 Log("마지막 저장 1건을 취소했습니다 · " + Path.GetFileName(path));

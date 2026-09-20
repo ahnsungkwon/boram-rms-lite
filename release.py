@@ -147,7 +147,8 @@ def build() -> None:
     # 0.4 replaces legacy cross-folder/journal tests with the actual simple workflow.
     required_workflow = {f'W{n:02d}' for n in range(1, 21)} | {f'A{n:02d}' for n in range(1, 25)} | {f'B{n:02d}' for n in range(1, 13)} | {f'T{n:02d}' for n in range(1, 17)} | {f'D{n:02d}' for n in range(1, 19)} | {f'K{n:02d}' for n in range(1, 9)} | {f'L{n:02d}' for n in range(1, 15)}
     covered_workflow = {item.get('Name', '').split(' ', 1)[0] for item in results}
-    if len(results) < 151 or not required_workflow.issubset(covered_workflow) or not all(item.get('Passed') is True for item in results) or not summary.startswith(f'PASS {len(results)}\nFAIL 0'):
+    required_workflow |= {f'PF{n:02d}' for n in range(1, 9)} | {f'NC{n:02d}' for n in range(1, 8)} | {f'SP{n:02d}' for n in range(1, 5)}
+    if len(results) < 170 or not required_workflow.issubset(covered_workflow) or not all(item.get('Passed') is True for item in results) or not summary.startswith(f'PASS {len(results)}\nFAIL 0'):
         raise SystemExit('Test failure: package will not be created.')
     for name in ['README.md', 'README_KO.md', 'UPDATE_GUIDE.md', 'CHANGELOG.md', 'SIMPLE_WORKFLOW.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'PUBLIC_SHARING.md']:
         shutil.copy2(ROOT / name, BUNDLE / name)

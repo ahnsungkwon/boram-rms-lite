@@ -1,4 +1,6 @@
 using System.IO;
+using System.Collections.Concurrent;
+using System.ComponentModel;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -6,8 +8,13 @@ using System.Text.RegularExpressions;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 namespace BoramRms.Lite;
-public sealed class ImageItem
+public sealed class ImageItem : INotifyPropertyChanged
 {
+    public event PropertyChangedEventHandler? PropertyChanged;
+    // Save applies a complete snapshot before one row notification. Selection,
+    // virtualization and the current bitmap need not be reset for a checkbox.
+    internal void NotifyChanged() => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(string.Empty));
+    private static readonly ConcurrentDictionary<string, Brush> Brushes = new(StringComparer.OrdinalIgnoreCase);
     public string FullPath { get; set; } = "";
     public string RelativePath { get; set; } = "";
     public string FileName => Path.GetFileName(FullPath);
@@ -31,7 +38,12 @@ public sealed class ImageItem
     public Brush QuotaBrush => Brush(Quota switch { "1" => "#557F45", "2" => "#258573", "3" => "#C08228", "4" => "#C44A48", _ => "#86589B" });
     public Brush StatusBackground => Brush(Status.Contains("취소") || Status == "오등록" ? "#FCE3E1" : Status.Contains("보완") ? "#FFF1CA" : Status.Contains("변경") ? "#DCF1EC" : Card ? "#EEE7F7" : "#EDF5E8");
     public Brush StatusForeground => Brush(Status.Contains("취소") || Status == "오등록" ? "#982E2C" : Status.Contains("보완") ? "#825717" : "#314B29");
-    public static Brush Brush(string hex) { var b = (SolidColorBrush)new BrushConverter().ConvertFrom(hex)!; b.Freeze(); return b; }
+    public static Brush Brush(string hex) => Brushes.GetOrAdd(hex, static color =>
+    {
+        var brush = (SolidColorBrush)new BrushConverter().ConvertFrom(color)!;
+        brush.Freeze();
+        return brush;
+    });
     public static (string Quota, string Name) Parse(string fileName)
     {
         var stem = Path.GetFileNameWithoutExtension(fileName);

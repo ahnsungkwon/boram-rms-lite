@@ -133,11 +133,12 @@ public partial class MainWindow
         item.StateNotice = "";
         if (tab.Order.Remove(oldPath, out var order)) tab.Order[result.Path] = order;
         if (tab.SelectedPath == oldPath) tab.SelectedPath = result.Path;
+        if (!SafePaths.Same(oldPath, result.Path)) _previewLoader.Transfer(oldPath, result.Path);
+        item.NotifyChanged();
         if (_active != tab) return;
-        var selecting = _selecting; _selecting = true;
-        try { ImageList.Items.Refresh(); } finally { _selecting = selecting; }
         if (_editing == item)
         {
+            QueueApplicantNameCopy(item);
             CurrentFileText.Text = item.RelativePath; SelectedFileText.Text = item.FileName;
             ImageDetails.Text = PreviewImage.Source is BitmapSource image
                 ? $"{image.PixelWidth} × {image.PixelHeight}px · {item.Length / 1024.0:0}KB · {item.StatusLabel}"

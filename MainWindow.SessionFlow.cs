@@ -43,7 +43,14 @@ public partial class MainWindow
     private void WorkflowHelp_Click(object sender, RoutedEventArgs e)
     {
         var existing = OwnedWindows.OfType<GuideWindow>().FirstOrDefault();
-        if (existing != null) { existing.Activate(); return; }
-        new GuideWindow { Owner = this }.Show();
+        if (existing != null) { if (!TestMode) existing.Activate(); return; }
+        var guide = new GuideWindow { Owner = this };
+        if (TestMode)
+        {
+            guide.WindowStartupLocation = WindowStartupLocation.Manual;
+            guide.Left = -16000; guide.Top = -16000;
+            guide.ShowInTaskbar = false; guide.ShowActivated = false;
+        }
+        guide.Show();
     }
 }

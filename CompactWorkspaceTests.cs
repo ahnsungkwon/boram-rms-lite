@@ -112,7 +112,7 @@ public static class CompactWorkspaceTests
                 var panel = new PanelWindow("시험", new Button { Content = "시험" }, 350); var help = new GuideWindow(); var update = new UpdateWindow(true);
                 try
                 {
-                    foreach (var x in new Window[] {panel,help,update}) { x.WindowStartupLocation = WindowStartupLocation.Manual; x.Left = -16000; x.Top = -16000; x.ShowInTaskbar = false; x.Show(); }
+                    foreach (var x in new Window[] {panel,help,update}) { x.WindowStartupLocation = WindowStartupLocation.Manual; x.Left = -16000; x.Top = -16000; x.ShowInTaskbar = false; x.ShowActivated = false; x.Show(); }
                     foreach (var p in new[] {80,100})
                     {
                         w.ChangeInterfaceScale(p); await Paint(w);
@@ -142,7 +142,7 @@ public static class CompactWorkspaceTests
             }));
             await checkAsync("D10 좁은 도움말 창의 줄바꿈·세로 스크롤", async () =>
             {
-                var guide = new GuideWindow { Left = -16000, Top = -16000, ShowInTaskbar = false, WindowStartupLocation = WindowStartupLocation.Manual, Width = 520, Height = 420 };
+                var guide = new GuideWindow { Left = -16000, Top = -16000, ShowInTaskbar = false, ShowActivated = false, WindowStartupLocation = WindowStartupLocation.Manual, Width = 520, Height = 420 };
                 guide.Show(); try { guide.ShowTopic(3); await Paint(guide); Assert(guide.Scroller.ScrollableHeight > 0 && guide.Scroller.ComputedHorizontalScrollBarVisibility != Visibility.Visible, "좁은 창 안내 접근 불가"); guide.Scroller.ScrollToEnd(); await Paint(guide); Assert(guide.Scroller.VerticalOffset > 0, "안내 끝까지 스크롤 불가"); } finally { guide.Close(); }
             });
             check("D11 상위 폴더에서 일반 이미지·행사 원본 검색", () =>
@@ -165,7 +165,7 @@ public static class CompactWorkspaceTests
             await checkAsync("D13 폴더 선택 창 검색·체크·선택 수 보존", async () =>
             {
                 var parent = Path.Combine(root, "picker"); Fixture(parent, "서울"); Fixture(parent, "인천"); Fixture(parent, "부산");
-                var picker = new FolderPickerWindow(parent, FolderDiscovery.Scan(parent)) { Left = -16000, Top = -16000, ShowInTaskbar = false, WindowStartupLocation = WindowStartupLocation.Manual };
+                var picker = new FolderPickerWindow(parent, FolderDiscovery.Scan(parent)) { Left = -16000, Top = -16000, ShowInTaskbar = false, ShowActivated = false, WindowStartupLocation = WindowStartupLocation.Manual };
                 picker.Show();
                 try
                 {

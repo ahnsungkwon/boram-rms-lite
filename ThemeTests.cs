@@ -137,8 +137,8 @@ public static class ThemeTests
             }));
             await checkAsync("T08 열려 있는 분리창·업데이트창 즉시 동기화", () => InWindow(Path.Combine(root, "windows"), async (w, c) =>
             {
-                var panel = new PanelWindow("테마 검수", new Button { Content = "테스트" }, 360) { Left = -16000, Top = -16000, ShowInTaskbar = false };
-                var update = new UpdateWindow(true) { Left = -16000, Top = -16000, ShowInTaskbar = false, WindowStartupLocation = WindowStartupLocation.Manual };
+                var panel = new PanelWindow("테마 검수", new Button { Content = "테스트" }, 360) { Left = -16000, Top = -16000, ShowInTaskbar = false, ShowActivated = false };
+                var update = new UpdateWindow(true) { Left = -16000, Top = -16000, ShowInTaskbar = false, ShowActivated = false, WindowStartupLocation = WindowStartupLocation.Manual };
                 panel.Show(); update.Show();
                 try
                 {
