@@ -16,11 +16,12 @@ REPO = 'ahnsungkwon/boram-rms-lite'
 VERSION = ET.parse(ROOT / 'BoramRms.Lite.csproj').findtext('./PropertyGroup/Version')
 if not VERSION or not re.fullmatch(r'\d+\.\d+\.\d+', VERSION):
     raise SystemExit('Invalid stable project version.')
-OUT = ROOT / 'dist' / 'releases' / VERSION
+# Public packages use a fresh tree; pre-merge verified artifacts stay untouched.
+OUT = ROOT / 'dist' / 'public' / 'releases' / VERSION
 BUNDLE = OUT / 'BoramRMS_Lite'
 ZIP = OUT / f'BoramRMS_Lite_{VERSION}_win-x64.zip'
 META = OUT / 'update-manifest.json'
-PROOF = ROOT / 'tests-data' / 'releases' / VERSION
+PROOF = ROOT / 'tests-data' / 'public' / 'releases' / VERSION
 
 
 def run(args: list[str], *, capture: bool = False) -> str:
@@ -42,6 +43,47 @@ def write_new(path: Path, value: object) -> None:
         json.dump(value, handle, ensure_ascii=False, indent=2)
 
 
+def copy_runtime_notices() -> None:
+    """Keep the notices shipped with the exact restored runtime packages."""
+    assets = json.loads((ROOT / 'obj' / 'project.assets.json').read_text('utf-8'))
+    config = json.loads((BUNDLE / 'BoramRms.Lite.runtimeconfig.json').read_text('utf-8'))
+    frameworks = config['runtimeOptions']['includedFrameworks']
+    records = []
+    for framework in frameworks:
+        name, version = framework['name'], framework['version']
+        if name not in {'Microsoft.NETCore.App', 'Microsoft.WindowsDesktop.App'}:
+            raise SystemExit('Unreviewed runtime: ' + name)
+        if not re.fullmatch(r'\d+\.\d+\.\d+', version):
+            raise SystemExit('Unexpected runtime version')
+        package = (name + '.Runtime.win-x64').lower()
+        candidates = [Path(folder) / package / version for folder in assets['packageFolders']]
+        source = next((folder for folder in candidates if folder.is_dir()), None)
+        if source is None:
+            raise SystemExit('Restored runtime package not found: ' + package)
+        available = {p.name.casefold(): p for p in source.iterdir() if p.is_file()}
+        chosen = []
+        for required in [('license.txt', 'license'), ('third-party-notices.txt', 'thirdpartynotices.txt')]:
+            match = next((available[key] for key in required if key in available), None)
+            if match is None:
+                raise SystemExit('Runtime license/notice missing: ' + package)
+            chosen.append(match)
+        destination = BUNDLE / 'licenses' / (package + '-' + version)
+        destination.mkdir(parents=True, exist_ok=False)
+        files = []
+        for source_file in chosen:
+            raw = source_file.read_bytes()
+            if not 100 <= len(raw) <= 5_000_000 or '\x00' in raw.decode('utf-8-sig'):
+                raise SystemExit('Invalid runtime notice text: ' + source_file.name)
+            target = destination / source_file.name
+            with target.open('xb') as handle:
+                handle.write(raw)
+            files.append({'name': target.relative_to(BUNDLE).as_posix(), 'sha256': digest(target)})
+        records.append({'package': package, 'version': version, 'files': files})
+    if len(records) != 2:
+        raise SystemExit('Expected .NET and Windows Desktop notices')
+    write_new(BUNDLE / 'licenses' / 'RUNTIME_NOTICES.json', records)
+
+
 def build() -> None:
     if OUT.exists():
         raise SystemExit(f'Release output exists. Do not overwrite: {OUT}')
@@ -58,12 +100,13 @@ def build() -> None:
     covered_workflow = {item.get('Name', '').split(' ', 1)[0] for item in results}
     if len(results) < 151 or not required_workflow.issubset(covered_workflow) or not all(item.get('Passed') is True for item in results) or not summary.startswith(f'PASS {len(results)}\nFAIL 0'):
         raise SystemExit('Test failure: package will not be created.')
-    for name in ['README.md', 'README_KO.md', 'UPDATE_GUIDE.md', 'CHANGELOG.md', 'SIMPLE_WORKFLOW.md']:
+    for name in ['README.md', 'README_KO.md', 'UPDATE_GUIDE.md', 'CHANGELOG.md', 'SIMPLE_WORKFLOW.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'PUBLIC_SHARING.md']:
         shutil.copy2(ROOT / name, BUNDLE / name)
     for name, target in [('SUMMARY.txt', 'TEST_SUMMARY.txt'), ('main-preview.png', 'MAIN_PREVIEW.png'), ('update-preview.png', 'UPDATE_PREVIEW.png'), ('rename-input-preview.png', 'RENAME_INPUT_PREVIEW.png'), ('rms-icon-preview.png', 'RMS_ICON_PREVIEW.png'), ('autosave-preview.png', 'AUTOSAVE_PREVIEW.png'), ('blank-name-preview.png', 'BLANK_NAME_PREVIEW.png')] + [(f'theme-{name}.png', f'THEME_{name.upper()}.png') for name in ['green', 'blue', 'purple', 'pink']]:
         shutil.copy2(proof / name, BUNDLE / target)
     for name in ['compact-main', 'compact-1024', 'guide-start', 'guide-shortcuts', 'folder-picker', 'dock-before', 'dock-expanded']:
         shutil.copy2(proof / (name + '.png'), BUNDLE / (name.upper() + '.png'))
+    copy_runtime_notices()
     entries = sorted(p for p in BUNDLE.rglob('*') if p.is_file())
     forbidden = {'.ttf', '.otf', '.woff', '.woff2', '.pfx', '.pem', '.key', '.dpapi'}
     if any(p.is_symlink() or p.suffix.lower() in forbidden or p.name.startswith('.env') for p in entries):
@@ -87,14 +130,25 @@ def verify_local() -> dict:
     metadata = json.loads(META.read_text(encoding='utf-8'))
     if metadata['Version'] != VERSION or metadata['Repository'] != REPO or digest(ZIP) != metadata['Sha256'] or ZIP.stat().st_size != metadata['Size']:
         raise SystemExit('Release package identity/hash does not match.')
+    with zipfile.ZipFile(ZIP) as archive:
+        for name in ['LICENSE', 'THIRD_PARTY_NOTICES.md', 'PUBLIC_SHARING.md', 'README.md', 'README_KO.md', 'UPDATE_GUIDE.md', 'CHANGELOG.md']:
+            if archive.read('BoramRMS_Lite/' + name) != (ROOT / name).read_bytes():
+                raise SystemExit('Packaged public document differs from source: ' + name)
+        notices = json.loads(archive.read('BoramRMS_Lite/licenses/RUNTIME_NOTICES.json'))
+        if len(notices) != 2 or any(len(item['files']) != 2 for item in notices):
+            raise SystemExit('Runtime notice inventory incomplete')
+        for item in notices:
+            for entry in item['files']:
+                if hashlib.sha256(archive.read('BoramRMS_Lite/' + entry['name'])).hexdigest() != entry['sha256']:
+                    raise SystemExit('Runtime notice hash mismatch')
     return metadata
 
 
 def publish() -> None:
     metadata = verify_local()
     repository = json.loads(run(['gh', 'repo', 'view', REPO, '--json', 'nameWithOwner,isPrivate,url'], capture=True))
-    if repository['nameWithOwner'] != REPO or not repository['isPrivate']:
-        raise SystemExit('Only the expected private repository may be published.')
+    if repository['nameWithOwner'] != REPO or repository['isPrivate'] is not False:
+        raise SystemExit('Only the expected public repository may be published.')
     if run(['git', 'status', '--porcelain'], capture=True).strip():
         raise SystemExit('Commit and push reviewed source changes before publishing.')
     if run(['git', 'branch', '--show-current'], capture=True).strip() != 'main':
@@ -123,7 +177,7 @@ def publish() -> None:
     data = json.loads(run(['gh', 'api', f'repos/{REPO}/releases/latest'], capture=True))
     if data['tag_name'] != tag or data['draft'] or data['prerelease']:
         raise SystemExit('Published release verification failed.')
-    write_new(OUT / 'PUBLISH_RESULT.json', {'repository': repository['url'], 'private': True, 'commit': commit, 'tag': tag, 'release': data['html_url'], 'published': data['published_at'], 'sha256': metadata['Sha256'], 'assetDigestsVerified': True})
+    write_new(OUT / 'PUBLISH_RESULT.json', {'repository': repository['url'], 'private': repository['isPrivate'], 'commit': commit, 'tag': tag, 'release': data['html_url'], 'published': data['published_at'], 'sha256': metadata['Sha256'], 'assetDigestsVerified': True})
     print(data['html_url'], flush=True)
 
 

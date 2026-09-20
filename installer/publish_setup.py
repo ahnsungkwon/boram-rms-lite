@@ -1,4 +1,4 @@
-"""Append verified first-install assets to the existing private app release.
+"""Append verified first-install assets to the existing public app release.
 Explicit publishing operation: adds assets only, never replaces or retags a release.
 """
 from __future__ import annotations
@@ -13,8 +13,8 @@ REPO = 'ahnsungkwon/boram-rms-lite'
 VERSION = ET.parse(ROOT / 'BoramRms.Lite.csproj').findtext('./PropertyGroup/Version')
 SETUP_VERSION = ET.parse(ROOT / 'installer/Setup.csproj').findtext('./PropertyGroup/Version')
 TAG = 'v' + VERSION
-OUT = ROOT / 'dist' / 'setup' / VERSION
-APP_RELEASE = ROOT / 'dist' / 'releases' / VERSION
+OUT = ROOT / 'dist' / 'public' / 'setup' / VERSION
+APP_RELEASE = ROOT / 'dist' / 'public' / 'releases' / VERSION
 SOURCE_FILES = [
     'BoramRms.Lite.csproj', 'installer/Setup.csproj', 'installer/app.manifest',
     'installer/InstallCore.cs', 'installer/FontInstaller.cs', 'installer/Program.cs',
@@ -24,6 +24,7 @@ SOURCE_FILES = [
     'MainWindow.Update.cs', 'GuideWindow.cs', 'LiteWorkflowTests.cs', 'release.py',
     'LiteFileIo.cs', 'LiteWorkspace.cs', 'FileLockTests.cs',
     'MainWindow.AutoStatus.cs', 'MainWindow.Simple.cs',
+    'LICENSE', 'THIRD_PARTY_NOTICES.md', 'PUBLIC_SHARING.md',
 ]
 
 def digest(path: Path) -> str:
@@ -62,8 +63,8 @@ def main() -> None:
         raise RuntimeError('Publish from main only.')
     commit = run(['git', 'rev-parse', 'HEAD']).strip()
     repository = json.loads(run(['gh', 'repo', 'view', REPO, '--json', 'nameWithOwner,isPrivate,url']))
-    if repository['nameWithOwner'] != REPO or repository['isPrivate'] is not True:
-        raise RuntimeError('The intended private repository was not confirmed.')
+    if repository['nameWithOwner'] != REPO or repository['isPrivate'] is not False:
+        raise RuntimeError('The intended public repository was not confirmed.')
     if api(f'repos/{REPO}/commits/main')['sha'] != commit:
         raise RuntimeError('Installer source is not on remote main.')
     original = json.loads((APP_RELEASE / 'PUBLISH_RESULT.json').read_text('utf-8'))
@@ -88,7 +89,7 @@ def main() -> None:
         'fontDownload': 'optional; fetched directly from the official publisher on the target PC',
         'fontRegistrationTestedOnRealProfile': False,
     }
-    probe_path = ROOT / 'tests-data' / ('setup-font-' + VERSION.replace('.', '')) / 'FONT_PROBE.json'
+    probe_path = ROOT / 'tests-data' / 'public' / ('setup-font-' + VERSION.replace('.', '')) / 'FONT_PROBE.json'
     if probe_path.exists():
         probe = json.loads(probe_path.read_text('utf-8'))
         info['fontDownloadAndMemoryProbePassed'] = probe.get('success') is True
@@ -119,7 +120,7 @@ def main() -> None:
         if path.name not in verified or not asset_ok(verified[path.name], path):
             raise RuntimeError('Uploaded installer asset failed verification: ' + path.name)
     result = {
-        'success': True, 'repository': REPO, 'private': True, 'tag': TAG,
+        'success': True, 'repository': REPO, 'private': repository['isPrivate'], 'tag': TAG,
         'release': after['html_url'], 'installerSourceCommit': commit,
         'appReleaseCommitUnchanged': release['target_commitish'],
         'originalAssetsUnchanged': True, 'assetDigestsVerified': True,

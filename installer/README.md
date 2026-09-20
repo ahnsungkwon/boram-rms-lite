@@ -1,5 +1,7 @@
 # 보람 RMS Lite — 처음 설치 도구 1.0.2
 
+공개 저장소 · MIT License. 설치 파일 링크 공유에 계정·개인 토큰이 필요하지 않습니다. 라이선스·저작권 및 외부 구성요소 고지를 함께 보존하세요.
+
 앱 **0.6.2**의 상태 저장·회전 잠금 처리 보완을 내장합니다. 기존 배포와 사용자 설치본은 보존합니다.
 
 ## 사용자 실행
@@ -23,12 +25,14 @@ Python은 필요하지 않습니다. 기본 위치는 `%LOCALAPPDATA%\Programs\B
 ## 검증과 배포
 
 새 배포는 기존 앱 시험과 L01~L14 잠금 재현을 포함한 최소 151개 시험, 설치 15개 시험, 설치된 앱 재시험, 공식 서체 다운로드·메모리 검수를 통과해야 생성됩니다.
+공개용 산출물은 `dist/public` 아래에 새로 생성합니다. 기존 `dist/releases/0.6.2`와 `dist/setup/0.6.2` 검수본은 덮어쓰지 않습니다.
 통과 여부는 해당 실행에서 생성한 다음 결과로 확인합니다. 이전 버전의 시험 기록으로 대체하지 않습니다.
 
-- `dist/releases/0.6.2/BUILD_RESULT.json`
-- `dist/setup/0.6.2/SETUP_BUILD_RESULT.json`
-- `dist/releases/0.6.2/PUBLISH_RESULT.json`
-- `dist/setup/0.6.2/SETUP_PUBLISH_RESULT.json`
+- `dist/public/releases/0.6.2/BUILD_RESULT.json`
+- `dist/public/setup/0.6.2/SETUP_BUILD_RESULT.json`
+- `dist/public/releases/0.6.2/PUBLISH_RESULT.json`
+- `dist/public/setup/0.6.2/SETUP_PUBLISH_RESULT.json`
+- `dist/public/releases/0.6.2/PUBLIC_DOWNLOAD_RESULT.json`
 
 ```text
 python release.py build
@@ -36,7 +40,11 @@ python installer/build_setup.py
 # 실제 결과와 변경 소스 검토 후 지정 소스만 main에 커밋·push
 python release.py publish
 python installer/publish_setup.py
+python verify_public_release.py
 ```
 
-게시 대상은 비공개 `ahnsungkwon/boram-rms-lite`의 새 v0.6.2입니다. 기존 자산·태그를 덮어쓰지 않습니다.
+게시 대상은 공개 `ahnsungkwon/boram-rms-lite`의 새 v0.6.2입니다. 양쪽 소스 이력을 보존하며 강제 push하지 않습니다.
+지정 공개 저장소·원격 main·배포 해시를 확인하고 기존 자산·태그를 덮어쓰지 않습니다.
+새 패키지는 `LICENSE`, `THIRD_PARTY_NOTICES.md`, `PUBLIC_SHARING.md`와 기존 런타임 고지를 포함합니다.
+실행 중 앱과 실제 고객 자료를 개발 시험에서 변경하지 않습니다.
 설치 EXE는 코드서명이 없습니다. 백신·SmartScreen·조직 정책을 끄지 마세요. Windows 제거 항목은 등록하지 않습니다.
