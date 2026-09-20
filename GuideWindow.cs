@@ -86,17 +86,18 @@ public sealed class GuideWindow : Window
             Body.Children.Add(ScreenMap());
             Body.Children.Add(Step("1", "폴더 열기", "+ 폴더 선택 → 신청서 폴더를 고르세요. 여러 폴더가 보이면 필요한 것만 체크합니다."));
             Body.Children.Add(Step("2", "확인하고 체크", "보완 사유·카드 등을 체크하거나 해제하면 바로 저장됩니다. 별도 저장 버튼은 필요 없습니다."));
-            Body.Children.Add(Step("3", "Space로 다음", "이름을 바꿀 때만 입력하세요. 빈칸이면 기존 이름을 유지합니다. Ctrl+Space는 이전입니다."));
+            Body.Children.Add(Step("3", "↓ 또는 Space로 다음", "이름을 바꿀 때만 입력하세요. 빈칸이면 기존 이름을 유지합니다. ↑ 또는 Ctrl+Space는 이전입니다."));
             Body.Children.Add(Text("예: 카드 체크 → Space → 다음 신청서. 이 흐름으로 한 장씩 확인하세요.", 13, true, "AccentDark"));
         }
         else if (index == 1)
         {
+            Body.Children.Add(Shortcut("↑ / ↓", "저장하고 이전 / 다음", "이름 입력칸·이미지·신청서 목록에서 동작합니다. 저장에 실패하면 현재 신청서에 머뭅니다."));
             Body.Children.Add(Shortcut("Space", "저장하고 다음", "새 이름이 있으면 저장합니다. 빈칸이면 기존 파일명 그대로 이동합니다."));
             Body.Children.Add(Shortcut("Ctrl + Space", "저장하고 이전", "현재 이름을 저장한 뒤 앞 신청서로 돌아갑니다."));
             Body.Children.Add(Shortcut("Ctrl + S", "저장만", "이름과 남은 메모를 저장하고 현재 이미지에 머뭅니다."));
             Body.Children.Add(Shortcut("휠 / 드래그", "이미지 확대 / 이동", "이미지 위에서 조작하세요. ‘맞춤’은 전체 이미지 보기입니다."));
             Body.Children.Add(Card("이전 폴더 열기 ≠ 마지막 변경 취소", "이전 폴더 열기: 지난번 폴더와 선택 위치를 다시 엽니다.\n마지막 변경 취소: 이번 실행에서 현재 폴더의 마지막 이름·체크·메모·회전 저장 1건만 취소합니다.", "입력 원래대로: 아직 저장하지 않은 입력만 되돌립니다. 이미 저장된 체크는 유지합니다."));
-            Body.Children.Add(Text("검색칸·메모칸의 Space는 공백입니다. 키보드로 체크박스에 초점을 두면 Space는 체크를 바꿉니다.", 12));
+            Body.Children.Add(Text("검색칸·메모칸·콤보박스의 방향키는 원래 동작을 유지합니다. Ctrl/Shift+방향키와 한글 후보 선택도 가로채지 않습니다. 검색·메모의 Space는 공백이며, 체크박스의 Space는 체크를 바꿉니다.", 12));
         }
         else if (index == 2)
         {

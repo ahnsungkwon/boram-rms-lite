@@ -47,6 +47,17 @@ public partial class MainWindow
     private void Window_KeyDown(object sender, KeyEventArgs e)
     {
         var key = e.Key == Key.ImeProcessed ? e.ImeProcessedKey : e.Key;
+        if (e.Key != Key.ImeProcessed && (key is Key.Up or Key.Down) &&
+            CurrentModifiers == ModifierKeys.None && CanHandleSpace(e.OriginalSource as DependencyObject))
+        {
+            // Handle before TextBox/ListBox defaults so the same save-before-move
+            // workflow works in the name field, image and list (also when detached).
+            // IME candidates, editable memos and modified selection keys stay native.
+            e.Handled = true;
+            if (!_spaceInFlight && !_navigating)
+                LastShortcutTask = AdvanceWithSpaceAsync(key == Key.Up ? -1 : 1);
+            return;
+        }
         var direction = SpaceDirection(CurrentModifiers);
         if (key == Key.Space && direction != 0 && CanHandleSpace(e.OriginalSource as DependencyObject))
         {

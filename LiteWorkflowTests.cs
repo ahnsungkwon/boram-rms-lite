@@ -172,6 +172,7 @@ public static class LiteWorkflowTests
             await LiteStatusPerformanceTests.RunAsync(run, Check, CheckAsync);
             await PreviewPerformanceTests.RunAsync(run, Check, CheckAsync);
             await ApplicantNameClipboardTests.RunAsync(run, CheckAsync);
+            await ArrowNavigationTests.RunAsync(run, CheckAsync);
             await BlankNameTests.RunAsync(run, CheckAsync);
             await ThemeTests.RunAsync(run, Check, CheckAsync);
             await CompactWorkspaceTests.RunAsync(run, Check, CheckAsync);

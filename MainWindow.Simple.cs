@@ -14,7 +14,7 @@ public partial class MainWindow
         if (_initializing || SaveHint == null) return;
         if (!_statusDirty && _statusWrites == 0) _autoSaveError = null;
         var blankName = _editing != null && string.IsNullOrWhiteSpace(CombinedTextBox.Text);
-        SaveHint.Text = blankName ? "빈칸이면 기존 파일명 유지 · Space 다음 / Ctrl+Space 이전" : _dirty ? "이름 저장 후 이동 · Space 다음 / Ctrl+Space 이전" : "Space 다음 · Ctrl+Space 이전";
+        SaveHint.Text = blankName ? "빈칸이면 기존 파일명 유지 · ↓ 다음 / ↑ 이전" : _dirty ? "이름 저장 후 이동 · ↓ 다음 / ↑ 이전" : "↓ / Space 다음 · ↑ / Ctrl+Space 이전";
         AutoSaveStatusText.Text = _statusWrites > 0 ? "체크 상태 저장 중…" : _autoSaveError != null ? "상태 저장 안 됨 · " + _autoSaveError : _statusDirty ? "메모 작성 중 · 입력을 마치면 자동 저장" : "체크·해제 즉시 저장";
         AutoSaveStatusText.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, _autoSaveError != null && _statusWrites == 0 ? "ErrorBrush" : "AccentBrush");
         AutoSaveStatusText.ToolTip = _autoSaveError ?? "체크는 이름 저장과 별개로 바로 저장됩니다. 메모는 입력칸을 벗어나면 저장됩니다.";
